@@ -8,8 +8,8 @@ import brickpi3
 
 BP = brickpi3.BrickPi3()
 
-degree_to_distance_ratio = 0.0486 # Calibrated
-wheel_separation = 13.85 # Calibrated
+degree_to_distance = 0.0486 # Calibrated, but try 0.048833
+wheel_separation = 13.85 # Calibrated, but try 13.785
 
 
 def move_forward(distance, speed, starting_delay=0, finish_delay=0):
@@ -26,9 +26,9 @@ def move_forward(distance, speed, starting_delay=0, finish_delay=0):
     """
     global BP
     starting_delay = starting_delay if starting_delay > 0 else 0
-    speed = 399*degree_to_distance_ratio if speed/degree_to_distance_ratio > 399 else speed
+    speed = 399*degree_to_distance if speed/degree_to_distance > 399 else speed
     # Calculate the desired wheel speed and the estimated time to execute the action
-    wheel_angular_speed = speed/degree_to_distance_ratio
+    wheel_angular_speed = speed/degree_to_distance
     time_estimate = distance / speed
 
     # Stop the motors at first
@@ -66,13 +66,13 @@ def rotate(angle, angular_speed, clockwise=0, starting_delay=0, finish_delay=0):
 
     global BP 
     starting_delay = starting_delay if starting_delay > 0 else 0
-    wheel_angular_speed = wheel_separation * angular_speed / (114.6 * degree_to_distance_ratio)
+    wheel_angular_speed = wheel_separation * angular_speed / (114.6 * degree_to_distance)
     if wheel_angular_speed > 399:
         wheel_angular_speed = 399
-        angular_speed = (45722 * degree_to_distance_ratio) / wheel_separation
+        angular_speed = (45722 * degree_to_distance) / wheel_separation
     # Calculate the desired wheel speed and the estimated time to execute the action
     time_estimate = angle / angular_speed
-    wheel_angular_speed = wheel_separation * angular_speed / (114.6 * degree_to_distance_ratio)
+    wheel_angular_speed = wheel_separation * angular_speed / (114.6 * degree_to_distance)
 
     # Assign the motor speed based on direction of rotation
     if clockwise:
@@ -108,13 +108,20 @@ try:
         BP.offset_motor_encoder(BP.PORT_D, BP.get_motor_encoder(BP.PORT_D)) # reset encoder D
         # Set up motor limits
         BP.set_motor_limits(BP.PORT_A, 70, 400) 
-        BP.set_motor_limits(BP.PORT_A, 70, 400)
+        BP.set_motor_limits(BP.PORT_D, 70, 400)
     except IOError as error:
         print(error)
+        raise
 
-    move_forward(distance=20, speed=5, starting_delay=2, finish_delay=15)
-    rotate(angle=60, angular_speed=30, clockwise=1, starting_delay=1, finish_delay=1)
-    move_forward(distance=20, speed=5, starting_delay=1, finish_delay=0)
+    # Draw a 40cm x 40 cm square
+    move_forward(distance=40, speed=8, starting_delay=2, finish_delay=1)
+    rotate(angle=90, angular_speed=30, starting_delay=1, finish_delay=1)
+    move_forward(distance=40, speed=8, starting_delay=1, finish_delay=1)
+    rotate(angle=90, angular_speed=30, starting_delay=1, finish_delay=1)
+    move_forward(distance=40, speed=8, starting_delay=1, finish_delay=1)
+    rotate(angle=90, angular_speed=30, starting_delay=1, finish_delay=1)
+    move_forward(distance=40, speed=8, starting_delay=1, finish_delay=1)
+    rotate(angle=90, angular_speed=30, starting_delay=1, finish_delay=1)
     
     # Loose the motors
     BP.set_motor_power(BP.PORT_A, BP.MOTOR_FLOAT)
