@@ -8,8 +8,8 @@ import brickpi3
 
 BP = brickpi3.BrickPi3()
 
-degree_to_distance_ratio = 0.022 # Calibrated
-wheel_separation = 15 # <---------------------- Needs calibration !
+degree_to_distance_ratio = 0.0486 # Calibrated
+wheel_separation = 13.85 # Calibrated
 
 
 def move_forward(distance, speed, starting_delay=0, finish_delay=0):
