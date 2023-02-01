@@ -33,6 +33,6 @@ try:
         print(("Motor A Target Degrees Per Second: %d" % target), "  Motor A Status: ", BP.get_motor_status(BP.PORT_A))
         time.sleep(0.05)
 
-except Exception:
+except:
     BP.reset_all()
 
