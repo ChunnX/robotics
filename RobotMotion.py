@@ -14,56 +14,138 @@ wheel_separation = 13.85
 
 
 class Robot:
-    def __init__(self, bp, degree_to_distance=0.0486, wheel_separation=13.85, power_limit=70, speed_limit=400):
+    def __init__(self, bp, left_motor="A", right_motor="D", degree_to_distance=0.0486, wheel_separation=13.85, power_limit=70, dps_limit=400, sonar=0):
         """
         Left motor is always PORT_A, right motor is always PORT_D
         """
         self.bp = bp
         self.D = degree_to_distance
         self.W = wheel_separation
-        self.speed_limit = speed_limit
+
+        self.dps_limit = dps_limit
+        self.speed_limit = dps_limit * self.D
         self.power_limit = power_limit
+
+        self.motors = {"A": bp.PORT_A, "B": bp.PORT_B, "C": bp.PORT_C, "D": bp.PORT_D}
+        self.sensors = {1: bp.PORT_1, 2: bp.PORT_2, 3: bp.PORT_3, 4: bp.PORT_4}
+
+        self.left_motor = self.motors[left_motor]
+        self.right_motor = self.motors[right_motor]
+
+        self.sonar = self.sensors[sonar] if sonar else 0
         try:
             # Reset encoders
-            self.bp.offset_motor_encoder(self.bp.PORT_A, self.bp.get_motor_encoder(self.bp.PORT_A))
-            self.bp.offset_motor_encoder(self.bp.PORT_D, self.bp.get_motor_encoder(self.bp.PORT_D))
+            self.bp.offset_motor_encoder(self.left_motor, self.bp.get_motor_encoder(self.left_motor))
+            self.bp.offset_motor_encoder(self.right_motor, self.bp.get_motor_encoder(self.right_motor))
             # Setup motor limits
-            self.bp.set_motor_limits(self.bp.PORT_A, power_limit, speed_limit)
-            self.bp.set_motor_limits(self.bp.PORT_D, power_limit, speed_limit)
+            self.bp.set_motor_limits(self.left_motor, power_limit, dps_limit)
+            self.bp.set_motor_limits(self.right_motor, power_limit, dps_limit)
         except IOError:
             raise
 
-
-    def wheel_status(self):
-        left_status = self.bp.get_motor_status(self.bp.PORT_A)
-        right_status = self.bp.get_motor_status(self.bp.PORT_D)
+    
+    @property
+    def status(self):
+        left_status = self.bp.get_motor_status(self.left_motor)
+        right_status = self.bp.get_motor_status(self.right_motor)
         return left_status, right_status
 
     @property
-    def wheel_speed(self):
-        left_speed = self.bp.get_motor_status(self.bp.PORT_A)[-1]*self.D
-        right_speed = self.bp.get_motor_status(self.bp.PORT_D)[-1]*self.D
+    def speed(self):
+        left_speed = self.bp.get_motor_status(self.left_motor)[-1]*self.D
+        right_speed = self.bp.get_motor_status(self.right_motor)[-1]*self.D
         return left_speed, right_speed
     
-    @wheel_speed.setter
-    def wheel_speed(self, left_speed=None, right_speed=None):
-        if left_speed:
-            left_speed = self.speed_limit*self.D if left_speed > self.speed_limit*self.D else left_speed
-            self.bp.set_motor_dps(self.bp.PORT_A, left_speed/self.D)
-        if right_speed:
-            right_speed = self.speed_limit*self.D if right_speed > self.speed_limit*self.D else right_speed
-            self.bp.set_motor_dps(self.bp.PORT_D, right_speed/self.D)
+    @speed.setter
+    def speed(self, *speeds):
+        if len(speeds) == 1:
+            if abs(speeds) > self.speed_limit:
+                right_wheel_speed = left_wheel_speed = self.dps_limit - 10 if speeds > 0 else 10 - self.dps_limit
+            else:
+                right_wheel_speed = left_wheel_speed = speeds / self.D
+        else:
+            left_speed, right_speed = speeds
+            if abs(left_speed) > self.speed_limit:
+                left_wheel_speed = self.dps_limit - 10 if left_speed > 0 else 10 - self.dps_limit
+            else:
+                left_wheel_speed = left_speed / self.D
+            if abs(right_speed) > self.speed_limit:
+                right_wheel_speed = self.dps_limit - 10 if right_speed > 0 else 10 - self.dps_limit
+            else:
+                right_wheel_speed = right_speed / self.D
+            
+            self.bp.set_motor_dps(self.left_motor, left_wheel_speed)
+            self.bp.set_motor_dps(self.right_motor, right_wheel_speed)
+
+
+    @property
+    def encoder(self):
+        left_encoder = self.bp.get_motor_encoder(self.left_motor)
+        right_encoder = self.bp.get_motor_encoder(self.right_motor)
+        return left_encoder, right_encoder
+
     
+    def clear_encoder(self):
+        self.bp.offset_motor_encoder(self.left_motor, self.bp.get_motor_encoder(self.left_motor))
+        self.bp.offset_motor_encoder(self.right_motor, self.bp.get_motor_encoder(self.right_motor))
+
+
+    def stop(self):
+        self.bp.set_motor_dps(self.left_motor, 0)
+        self.bp.set_motor_dps(self.right_motor, 0)
+        return None
     
-    def move_forward(self):
+
+    def move(self, distance, speed=None, start_delay=0, finish_delay=0):
+        if start_delay > 0:
+            time.sleep(start_delay)
+        self.clear_encoder()
+
+        if speed:
+            if abs(speed) > self.speed_limit:
+                speed = self.speed_limit -10 if speed > 0 else 10 - self.speed_limit
+            estimated_time = distance / speed
+            self.speed = speed
+            time.sleep(estimated_time-0.2)
+            current_speed = sum(self.speed)/2
+            current_position = sum(self.encoder)/2 * self.D
+            remaining_time = 0.2 + (distance - current_position) / current_speed
+            time.sleep(remaining_time)
+            self.stop()
+        else:
+            angular_target = distance / self.D
+            self.bp.set_motor_position(self.left_motor, angular_target)
+            self.bp.set_motor_position(self.right_motor, angular_target)
+            while True:
+                time.sleep(0.05)
+                left_encoder, right_encoder = self.encoder
+                if max(abs(left_encoder - angular_target), abs(right_encoder - angular_target)) < 20:
+                    break
+
+        if finish_delay > 0:
+            time.sleep(finish_delay)
+            
+        return self.encoder*self.D
+
+
+    def rotate(self, angle, angular_speed, start_delay, finish_delay):
         pass
 
 
-    def rotate(self):
+    def circle(self):
         pass
+    
+
+    @property
+    def sonar(self):
+        if self.sonar:
+            return self.bp.get_sensor(self.sonar)
+        else:
+            raise IOError("No sonar sensor registered")
 
 
-
+    def shutdown(self):
+        self.bp.reset_all()
 
 
 
