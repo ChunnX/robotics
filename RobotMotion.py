@@ -27,7 +27,7 @@ class Robot:
         self.left_motor = self.motors[left_motor]
         self.right_motor = self.motors[right_motor]
         # Set sensor ports
-        self.sonar = self.sensors[sonar] if sonar else 0
+        self.sonar_sensor = self.sensors[sonar] if sonar else 0
         try:
             # Reset encoders
             self.bp.offset_motor_encoder(self.left_motor, self.bp.get_motor_encoder(self.left_motor))
@@ -172,8 +172,8 @@ class Robot:
 
     @property
     def sonar(self):
-        if self.sonar:
-            return self.bp.get_sensor(self.sonar)
+        if self.sonar_sensor:
+            return self.bp.get_sensor(self.sonar_sensor)
         else:
             raise IOError("No sonar sensor registered")
 
