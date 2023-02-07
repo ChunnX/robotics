@@ -54,8 +54,8 @@ class Robot:
 
 
     @speed.setter
-    def speed(self, *speeds):
-        if len(speeds) == 1:
+    def speed(self, speeds):
+        if isinstance(speeds, int):
             if abs(speeds) > self.speed_limit:
                 right_wheel_speed = left_wheel_speed = self.dps_limit if speeds > 0 else -self.dps_limit
             else:
@@ -139,15 +139,15 @@ class Robot:
             speed = angular_speed * self.W / 114.59
             if abs(speed) > self.speed_limit:
                 speed = self.speed_limit if speed > 0 else -self.speed_limit
-                estimated_time = angular_target * self.D / (2*speed)
-                self.speed = -speed, speed
-                time.sleep(estimated_time - 0.2)
-                # Correction
-                left_speed, right_speed = self.speed
-                left_encoder, right_encoder = self.encoder
-                remaining_time = (angular_target - right_encoder + left_encoder) * self.D / (right_speed - left_speed) + 0.2
-                time.sleep(remaining_time)
-                self.stop()
+            estimated_time = angular_target * self.D / (2*speed)
+            self.speed = -speed, speed
+            time.sleep(estimated_time - 0.2)
+            # Correction
+            left_speed, right_speed = self.speed
+            left_encoder, right_encoder = self.encoder
+            remaining_time = (angular_target - right_encoder + left_encoder) * self.D / (right_speed - left_speed) + 0.2
+            time.sleep(remaining_time)
+            self.stop()
         else: # Use position control if angular speed is not specified
             self.bp.set_motor_position(self.left_motor, angular_target/2)
             self.bp.set_motor_position(self.right_motor, -angular_target/2)
