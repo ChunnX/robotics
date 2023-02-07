@@ -55,12 +55,7 @@ class Robot:
 
     @speed.setter
     def speed(self, speeds):
-        if isinstance(speeds, int):
-            if abs(speeds) > self.speed_limit:
-                right_wheel_speed = left_wheel_speed = self.dps_limit if speeds > 0 else -self.dps_limit
-            else:
-                right_wheel_speed = left_wheel_speed = speeds / self.D
-        else:
+        if isinstance(speeds, tuple):
             left_speed, right_speed = speeds
             if abs(left_speed) > self.speed_limit:
                 left_wheel_speed = self.dps_limit if left_speed > 0 else -self.dps_limit
@@ -70,6 +65,11 @@ class Robot:
                 right_wheel_speed = self.dps_limit if right_speed > 0 else self.dps_limit
             else:
                 right_wheel_speed = right_speed / self.D
+        else:
+            if abs(speeds) > self.speed_limit:
+                right_wheel_speed = left_wheel_speed = self.dps_limit if speeds > 0 else -self.dps_limit
+            else:
+                right_wheel_speed = left_wheel_speed = speeds / self.D
         # Set motor angular speed
         self.bp.set_motor_dps(self.left_motor, left_wheel_speed)
         self.bp.set_motor_dps(self.right_motor, right_wheel_speed)
@@ -82,44 +82,49 @@ class Robot:
         return left_encoder, right_encoder
 
 
+    @encoder.setter
+    def encoder(self, target):
+        if isinstance(target, tuple):
+            left_target, right_target = target
+            self.bp.set_motor_position(self.left_motor, left_target)
+            self.bp.set_motor_position(self.right_motor, right_target)
+        else:
+            self.bp.set_motor_position(self.left_motor, target)
+            self.bp.set_motor_position(self.right_motor, target)
+
+
     def clear_encoder(self):
+        # Reset motor encoders to zero
         self.bp.offset_motor_encoder(self.left_motor, self.bp.get_motor_encoder(self.left_motor))
         self.bp.offset_motor_encoder(self.right_motor, self.bp.get_motor_encoder(self.right_motor))
 
 
-    def stop(self):
+    def stop(self, wait=0.05):
         self.bp.set_motor_dps(self.left_motor, 0)
         self.bp.set_motor_dps(self.right_motor, 0)
-        time.sleep(0.1)
+        time.sleep(wait)
 
 
-    def move(self, distance, speed=None, start_delay=0, finish_delay=0):
+    def move(self, distance, speed=5, start_delay=0, finish_delay=0):
         if start_delay > 0:
             time.sleep(start_delay)
-        # Reset encoders to 0
+        angular_target = distance / self.D
+        # Reset encoders
         self.clear_encoder()
         # Make the robot move forward
-        if speed:
-            if abs(speed) > self.speed_limit:
-                speed = self.speed_limit if speed > 0 else -self.speed_limit
-            estimated_time = distance / speed
-            self.speed = speed
-            time.sleep(estimated_time - 0.2)
-            # Correction
-            remaining_time = (2*distance - sum(self.encoder)*self.D) / sum(self.speed)
-            time.sleep(remaining_time)
-            self.stop()
-        else: # Use position control if speed is not specified
-            angular_target = distance / self.D
-            self.bp.set_motor_position(self.left_motor, angular_target)
-            self.bp.set_motor_position(self.right_motor, angular_target)
-            while True:
-                # Check every 50 ms
-                time.sleep(0.05)
-                left_encoder, right_encoder = self.encoder
-                if max(abs(left_encoder - angular_target), abs(right_encoder - angular_target)) < 20:
-                    self.stop()
-                    break
+        if abs(speed) > self.speed_limit:
+            speed = self.speed_limit if speed > 0 else -self.speed_limit
+        estimated_time = distance / speed
+        self.speed = speed
+        time.sleep(estimated_time - 0.2)
+        # Use positional control for correction
+        self.encoder = angular_target
+        while True:
+            time.sleep(0.05)
+            left_encoder, right_encoder = self.encoder
+            if max(abs(left_encoder + angular_target), abs(right_encoder - angular_target)) < 5:
+                self.stop(0.02)
+                break
         # Wait if required
         if finish_delay > 0:
             time.sleep(finish_delay)
@@ -127,37 +132,30 @@ class Robot:
         return sum(self.encoder)*self.D/2
 
 
-    def rotate(self, angle, angular_speed=None, start_delay=0, finish_delay=0):
+    def rotate(self, angle, angular_speed=30, start_delay=0, finish_delay=0):
         if start_delay > 0:
             time.sleep(start_delay)
         # Calculate the angular target (could be negative)
-        angular_target = angle * self.W / (self.D * 57.296)
-        # Reset encoder to 0
+        arc_length = angle * self.W / 114.59
+        angular_target = arc_length / self.D
+        angular_speed = abs(angular_speed) if angle > 0 else -abs(angular_speed) # Quality of life
+        # Reset encoders
         self.clear_encoder()
         # Rotate the robot
-        if angular_speed:
-            speed = angular_speed * self.W / 114.59
-            if abs(speed) > self.speed_limit:
-                speed = self.speed_limit if speed > 0 else -self.speed_limit
-            estimated_time = angular_target * self.D / (2*speed)
-            self.speed = -speed, speed
-            time.sleep(estimated_time - 0.2)
-            # Correction
-            left_speed, right_speed = self.speed
+        speed = angular_speed * self.W / 114.59
+        if abs(speed) > self.speed_limit:
+            speed = self.speed_limit if speed > 0 else -self.speed_limit
+        estimated_time = arc_length / speed
+        self.speed = -speed, speed
+        time.sleep(estimated_time - 0.2)
+        # Use positional control for correction
+        self.encoder = -angular_target, angular_target
+        while True:
+            time.sleep(0.05)
             left_encoder, right_encoder = self.encoder
-            remaining_time = (angular_target - right_encoder + left_encoder) * self.D / (right_speed - left_speed)
-            time.sleep(remaining_time)
-            self.stop()
-        else: # Use position control if angular speed is not specified
-            self.bp.set_motor_position(self.left_motor, -angular_target/2)
-            self.bp.set_motor_position(self.right_motor, angular_target/2)
-            while True:
-                # Check every 50 ms
-                time.sleep(0.05)
-                left_encoder, right_encoder = self.encoder
-                if abs(right_encoder - left_encoder - angular_target) < 20:
-                    self.stop()
-                    break
+            if max(abs(left_encoder + angular_target), abs(right_encoder - angular_target)) < 5:
+                self.stop(0.02)
+                break
         # Wait if required
         if finish_delay > 0:
             time.sleep(finish_delay)
@@ -175,7 +173,7 @@ class Robot:
         if self.sonar_sensor:
             return self.bp.get_sensor(self.sonar_sensor)
         else:
-            raise IOError("No sonar sensor registered")
+            raise IOError("No sonar registered")
 
 
     def shutdown(self):
