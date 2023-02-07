@@ -106,7 +106,7 @@ class Robot:
             self.speed = speed
             time.sleep(estimated_time - 0.2)
             # Correction
-            remaining_time = 0.2 + (2*distance - sum(self.encoder)*self.D) / sum(self.speed)
+            remaining_time = (2*distance - sum(self.encoder)*self.D) / sum(self.speed)
             time.sleep(remaining_time)
             self.stop()
         else: # Use position control if speed is not specified
@@ -145,12 +145,12 @@ class Robot:
             # Correction
             left_speed, right_speed = self.speed
             left_encoder, right_encoder = self.encoder
-            remaining_time = (angular_target - right_encoder + left_encoder) * self.D / (right_speed - left_speed) + 0.2
+            remaining_time = (angular_target - right_encoder + left_encoder) * self.D / (right_speed - left_speed)
             time.sleep(remaining_time)
             self.stop()
         else: # Use position control if angular speed is not specified
-            self.bp.set_motor_position(self.left_motor, angular_target/2)
-            self.bp.set_motor_position(self.right_motor, -angular_target/2)
+            self.bp.set_motor_position(self.left_motor, -angular_target/2)
+            self.bp.set_motor_position(self.right_motor, angular_target/2)
             while True:
                 # Check every 50 ms
                 time.sleep(0.05)
