@@ -41,8 +41,8 @@ class Robot:
             self.bp.set_motor_limits(self.left_motor, power_limit, dps_limit)
             self.bp.set_motor_limits(self.right_motor, power_limit, dps_limit)
             # Setup PID
-            self.bp.set_motor_position_kp(self.left_motor, 20)
-            self.bp.set_motor_position_kp(self.right_motor, 20)
+            self.bp.set_motor_position_kp(self.left_motor, 25)
+            self.bp.set_motor_position_kp(self.right_motor, 25)
             self.bp.set_motor_position_kp(self.left_motor, 70)
             self.bp.set_motor_position_kp(self.right_motor, 70)
         except IOError as e:
@@ -155,10 +155,10 @@ class Robot:
             speed = self.speed_limit if speed > 0 else -self.speed_limit
         estimated_time = distance / speed
         self.speed = speed
-        time.sleep(estimated_time - 0.2)
+        time.sleep(estimated_time)
         # Use positional control for correction
         self.encoder = angular_target
-        for i in range(10):
+        for i in range(5):
             time.sleep(0.02)
             left_encoder, right_encoder = self.encoder
             if max(abs(left_encoder - angular_target), abs(right_encoder - angular_target)) < 5:
@@ -184,9 +184,9 @@ class Robot:
         speed = angular_speed * self.W / 114.59
         if abs(speed) > self.speed_limit:
             speed = self.speed_limit if speed > 0 else -self.speed_limit
-        estimated_time = arc_length / speed
+        estimated_time = arc_length / speed - abs(1/speed)
         self.speed = -speed, speed
-        time.sleep(estimated_time - 0.2)
+        time.sleep(estimated_time)
         # slow robot down
         speed = 3 if speed > 0 else -3
         self.speed = -speed, speed
@@ -210,16 +210,15 @@ class Robot:
 
     @property
     def sonar(self):
-        if self.sonar_sensor:
-            while True:
-                try:
-                    distance = self.bp.get_sensor(self.sonar_sensor)
-                except brickpi3.SensorError:
-                    pass
-                else:
-                    return distance
-        else:
+        if not self.sonar_sensor:
             raise IOError("No sonar registered")
+        while True:
+            try:
+                distance = self.bp.get_sensor(self.sonar_sensor)
+            except brickpi3.SensorError:
+                pass
+            else:
+                return distance
 
 
     def shutdown(self):
