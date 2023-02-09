@@ -19,7 +19,7 @@ class Robot:
         # Set up limits
         self.dps_limit = dps_limit - 10
         self.speed_limit = self.dps_limit * self.D
-        self.power_limit = power_limit-5
+        self.power_limit = power_limit - 2
         # Ports connecting to motors and sensors
         self.motors = {"A": bp.PORT_A, "B": bp.PORT_B, "C": bp.PORT_C, "D": bp.PORT_D}
         self.sensors = {1: bp.PORT_1, 2: bp.PORT_2, 3: bp.PORT_3, 4: bp.PORT_4}
@@ -35,12 +35,15 @@ class Robot:
             # Setup motor limits
             self.bp.set_motor_limits(self.left_motor, power_limit, dps_limit)
             self.bp.set_motor_limits(self.right_motor, power_limit, dps_limit)
-        except IOError:
+        except IOError as e:
+            print(e)
             raise
 
 
     @property
     def status(self):
+        """Return the status of the motors
+        """
         left_status = self.bp.get_motor_status(self.left_motor)
         right_status = self.bp.get_motor_status(self.right_motor)
         return left_status, right_status
@@ -48,6 +51,8 @@ class Robot:
 
     @property
     def speed(self):
+        """Return the speed of the wheels in cm/s
+        """
         left_speed = self.bp.get_motor_status(self.left_motor)[-1]*self.D
         right_speed = self.bp.get_motor_status(self.right_motor)[-1]*self.D
         return left_speed, right_speed
@@ -55,6 +60,13 @@ class Robot:
 
     @speed.setter
     def speed(self, speeds):
+        """Set the dps of the wheels to reach the desired speed (in cm/s)
+
+        Args:
+            speeds (float/int or tuple): The desired speed in cm/s. If 
+            tuple, it must be in the form of (left speed, right speed). 
+            If int or float, both wheels will be set to the same speed.
+        """
         if isinstance(speeds, tuple):
             left_speed, right_speed = speeds
             if abs(left_speed) > self.speed_limit:
@@ -77,6 +89,8 @@ class Robot:
 
     @property
     def encoder(self):
+        """Return the values of the motor encoders in degree. 
+        """
         left_encoder = self.bp.get_motor_encoder(self.left_motor)
         right_encoder = self.bp.get_motor_encoder(self.right_motor)
         return left_encoder, right_encoder
@@ -84,6 +98,13 @@ class Robot:
 
     @encoder.setter
     def encoder(self, target):
+        """Set the desired position (in degree) of the motors using positional control.
+
+        Args:
+            target (int/float or tuple): The angular target (in degree) to be 
+            reached. If tuple, it must be in the form of (left target, right 
+            target). If int or float, both wheels will be set to the same target.
+        """
         if isinstance(target, tuple):
             left_target, right_target = target
             self.bp.set_motor_position(self.left_motor, left_target)
@@ -94,15 +115,23 @@ class Robot:
 
 
     def clear_encoder(self):
-        # Reset motor encoders to zero
+        """ Reset motor encoders to zero
+        """
         self.bp.offset_motor_encoder(self.left_motor, self.bp.get_motor_encoder(self.left_motor))
         self.bp.offset_motor_encoder(self.right_motor, self.bp.get_motor_encoder(self.right_motor))
 
 
-    def stop(self, wait=0.05):
+    def stop(self, wait=0.02):
         self.bp.set_motor_dps(self.left_motor, 0)
         self.bp.set_motor_dps(self.right_motor, 0)
         time.sleep(wait)
+    
+
+    def loose(self):
+        """Set the motors to FLOAT.
+        """
+        self.bp.set_motor_power(self.left_motor, self.bp.MOTOR_FLOAT)
+        self.bp.set_motor_power(self.right_motor, self.bp.MOTOR_FLOAT)
 
 
     def move(self, distance, speed=5, start_delay=0, finish_delay=0):
@@ -119,12 +148,12 @@ class Robot:
         time.sleep(estimated_time - 0.2)
         # Use positional control for correction
         self.encoder = angular_target
-        while True:
+        for i in range(6):
             time.sleep(0.05)
             left_encoder, right_encoder = self.encoder
-            if max(abs(left_encoder + angular_target), abs(right_encoder - angular_target)) < 5:
-                self.stop(0.02)
+            if max(abs(left_encoder - angular_target), abs(right_encoder - angular_target)) < 5:
                 break
+        self.stop()
         # Wait if required
         if finish_delay > 0:
             time.sleep(finish_delay)
@@ -150,12 +179,12 @@ class Robot:
         time.sleep(estimated_time - 0.2)
         # Use positional control for correction
         self.encoder = -angular_target, angular_target
-        while True:
+        for i in range(6):
             time.sleep(0.05)
             left_encoder, right_encoder = self.encoder
             if max(abs(left_encoder + angular_target), abs(right_encoder - angular_target)) < 5:
-                self.stop(0.02)
                 break
+        self.stop()
         # Wait if required
         if finish_delay > 0:
             time.sleep(finish_delay)
