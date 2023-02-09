@@ -74,7 +74,7 @@ class Robot:
             else:
                 left_wheel_speed = left_speed / self.D
             if abs(right_speed) > self.speed_limit:
-                right_wheel_speed = self.dps_limit if right_speed > 0 else self.dps_limit
+                right_wheel_speed = self.dps_limit if right_speed > 0 else -self.dps_limit
             else:
                 right_wheel_speed = right_speed / self.D
         else:
