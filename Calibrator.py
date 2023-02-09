@@ -4,21 +4,33 @@ def calibrate(d11, d12, theta1, d21, d22, theta2, D, W, l1, l2):
     r = 1
     theta1 /= 57.29578
     theta2 /= 57.29578
-    while True:
-        # print((l1/l2)**2)
-        # print(r, theta2)
-        # print((np.cos(r*theta2)))
-        # print(- d11**2 - d12**2)
-        print(r, ((l1/l2)**2 * (d21**2 + d22**2 + 2*d21*d22*np.cos(r*theta2)) - d11**2 - d12**2) / (2*d11*d12))
-        a = (l1/l2)**2 * (d21**2 + d22**2 + 2*d21*d22*np.cos(r*theta2)) - d11**2 - d12**2
-        if np.isnan(a):
-            raise Exception
-        new_r = np.arccos(((l1/l2)**2 * (d21**2 + d22**2 + 2*d21*d22*np.cos(r*theta2)) - d11**2 - d12**2) / (2*d11*d12)) / theta1
-        if abs(new_r - r) < 1e-8:
-            r = (new_r + r) / 2
+
+    last_diff = 0
+    for i in np.linspace(0, 2, 21):
+        new_diff = np.cos(theta1*i) * 2*d11*d12 - (l1/l2)**2 * (d21**2 + d22**2 + 2*d21*d22*np.cos(i*theta2)) + d11**2 + d12**2
+        if new_diff == 0:
+            r_l = r_h = i
+            break
+        elif new_diff * last_diff < 0:
+            r_l = i - 0.1
+            r_h = i
             break
         else:
-            r = new_r
+            last_diff = new_diff
+
+    while r_h - r_l > 1e-10:
+        d_h = np.cos(theta1*r_h) * 2*d11*d12 - (l1/l2)**2 * (d21**2 + d22**2 + 2*d21*d22*np.cos(r_h*theta2)) + d11**2 + d12**2
+        new_r = (r_l + r_h) / 2
+
+        d_new = np.cos(theta1*new_r) * 2*d11*d12 - (l1/l2)**2 * (d21**2 + d22**2 + 2*d21*d22*np.cos(new_r*theta2)) + d11**2 + d12**2
+        if d_new == 0:
+            r_h = r_l = new_r
+        elif d_new * d_h < 0:
+            r_l = new_r
+        else:
+            r_h = new_r
+
+    r = (r_h + r_l) / 2
     D_prime = l1 / np.sqrt(d11**2 + d12**2 + 2*np.cos(r*theta1)*d11*d12)
     W_prime = W * D_prime / (D * r)
     return D_prime, W_prime
