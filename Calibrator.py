@@ -5,8 +5,14 @@ def calibrate(d11, d12, theta1, d21, d22, theta2, D, W, l1, l2):
     theta1 /= 57.29578
     theta2 /= 57.29578
     while True:
-        if np.isnan(r):
-            break
+        # print((l1/l2)**2)
+        # print(r, theta2)
+        # print((np.cos(r*theta2)))
+        # print(- d11**2 - d12**2)
+        print(r, ((l1/l2)**2 * (d21**2 + d22**2 + 2*d21*d22*np.cos(r*theta2)) - d11**2 - d12**2) / (2*d11*d12))
+        a = (l1/l2)**2 * (d21**2 + d22**2 + 2*d21*d22*np.cos(r*theta2)) - d11**2 - d12**2
+        if np.isnan(a):
+            raise Exception
         new_r = np.arccos(((l1/l2)**2 * (d21**2 + d22**2 + 2*d21*d22*np.cos(r*theta2)) - d11**2 - d12**2) / (2*d11*d12)) / theta1
         if abs(new_r - r) < 1e-8:
             r = (new_r + r) / 2

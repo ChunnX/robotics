@@ -3,11 +3,12 @@
 
 import time
 from datetime import datetime
+import brickpi3
 
 
 class Robot:
     def __init__(self, bp, left_motor="A", right_motor="D", 
-        degree_to_distance=0.0486, wheel_separation=13.85, 
+        degree_to_distance=0.04782, wheel_separation=14.359, 
         power_limit=70, dps_limit=400, 
         sonar=0):
         """
@@ -27,7 +28,11 @@ class Robot:
         self.left_motor = self.motors[left_motor]
         self.right_motor = self.motors[right_motor]
         # Set sensor ports
-        self.sonar_sensor = self.sensors[sonar] if sonar else 0
+        if sonar:
+            self.sonar_sensor = self.sensors[sonar]
+            bp.set_sensor_type(self.sonar_sensor, bp.SENSOR_TYPE.NXT_ULTRASONIC)
+        else:
+            self.sonar_sensor = 0
         try:
             # Reset encoders
             self.bp.offset_motor_encoder(self.left_motor, self.bp.get_motor_encoder(self.left_motor))
@@ -35,6 +40,11 @@ class Robot:
             # Setup motor limits
             self.bp.set_motor_limits(self.left_motor, power_limit, dps_limit)
             self.bp.set_motor_limits(self.right_motor, power_limit, dps_limit)
+            # Setup PID
+            self.bp.set_motor_position_kp(self.left_motor, 20)
+            self.bp.set_motor_position_kp(self.right_motor, 20)
+            self.bp.set_motor_position_kp(self.left_motor, 70)
+            self.bp.set_motor_position_kp(self.right_motor, 70)
         except IOError as e:
             print(e)
             raise
@@ -148,8 +158,8 @@ class Robot:
         time.sleep(estimated_time - 0.2)
         # Use positional control for correction
         self.encoder = angular_target
-        for i in range(6):
-            time.sleep(0.05)
+        for i in range(10):
+            time.sleep(0.02)
             left_encoder, right_encoder = self.encoder
             if max(abs(left_encoder - angular_target), abs(right_encoder - angular_target)) < 5:
                 break
@@ -177,12 +187,13 @@ class Robot:
         estimated_time = arc_length / speed
         self.speed = -speed, speed
         time.sleep(estimated_time - 0.2)
-        # Use positional control for correction
-        self.encoder = -angular_target, angular_target
-        for i in range(6):
-            time.sleep(0.05)
+        # slow robot down
+        speed = 3 if speed > 0 else -3
+        self.speed = -speed, speed
+        for i in range(25):
+            time.sleep(0.02)
             left_encoder, right_encoder = self.encoder
-            if max(abs(left_encoder + angular_target), abs(right_encoder - angular_target)) < 5:
+            if abs(2*angular_target) - abs(right_encoder - left_encoder) < 10:
                 break
         self.stop()
         # Wait if required
@@ -200,7 +211,13 @@ class Robot:
     @property
     def sonar(self):
         if self.sonar_sensor:
-            return self.bp.get_sensor(self.sonar_sensor)
+            while True:
+                try:
+                    distance = self.bp.get_sensor(self.sonar_sensor)
+                except brickpi3.SensorError:
+                    pass
+                else:
+                    return distance
         else:
             raise IOError("No sonar registered")
 
