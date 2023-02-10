@@ -7,11 +7,11 @@ from RobotMotion import Robot
 BP = brickpi3.BrickPi3()
 robot = Robot(BP)
 
-round = 20
+round = 40
 
-distances = np.zeros((round, 1), dtype=np.float32)
-deviations = np.zeros((round, 1), dtype=np.float32) # in rad
-angles = np.zeros((round, 1), dtype=np.float32)
+distances = np.zeros(round, dtype=np.float64)
+deviations = np.zeros(round, dtype=np.float64)
+angles = np.zeros(round, dtype=np.float64)
 
 try:
     for i in range(round//2):
@@ -34,10 +34,11 @@ try:
 except:
     robot.shutdown()
 else:
-    print("\t\tmean\tstd")
-    print("distance:", np.mean(distances), np.std(distances), sep='\t')
-    print("deviation:", np.mean(deviations), np.std(deviations), sep='\t')
-    print("angle:\t", np.mean(angles), np.std(angles), sep='\t')
+    deviations = deviations/np.pi*180
+    print("Term\t\tMean\t\tSigma\t\tUnit")
+    print("distance:\t", "{:<10.8}\t".format(np.mean(distances)), "{:<10.8}\t".format(np.std(distances)), "cm", sep="")
+    print("deviation:\t", "{:<10.8}\t".format(np.mean(deviations)), "{:<10.8}\t".format(np.std(deviations)), "degree", sep="")
+    print("angle:\t\t", "{:<10.8}\t".format(np.mean(angles)), "{:<10.8}\t".format(np.std(angles)), "degree", sep="")
 
 
 
