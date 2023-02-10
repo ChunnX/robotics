@@ -1,0 +1,405 @@
+# -*- coding: utf-8 -*-
+#!/usr/bin/env python
+
+import time
+from datetime import datetime
+import math
+import random
+
+
+class Robot:
+    def __init__(self, bp, left_motor="A", right_motor="D", 
+        degree_to_distance=0.0486, wheel_separation=13.85, 
+        power_limit=70, dps_limit=400, 
+        sonar=0):
+        """
+        The Robot class for brickpi3 robot.
+        """
+        self.bp = bp
+        self.D = degree_to_distance
+        self.W = wheel_separation
+        # Set up limits
+        self.dps_limit = dps_limit - 10
+        self.speed_limit = self.dps_limit * self.D
+        self.power_limit = power_limit - 2
+        # Ports connecting to motors and sensors
+        self.motors = {"A": bp.PORT_A, "B": bp.PORT_B, "C": bp.PORT_C, "D": bp.PORT_D}
+        self.sensors = {1: bp.PORT_1, 2: bp.PORT_2, 3: bp.PORT_3, 4: bp.PORT_4}
+        # Set motor ports
+        self.left_motor = self.motors[left_motor]
+        self.right_motor = self.motors[right_motor]
+        # Set sensor ports
+        self.sonar_sensor = self.sensors[sonar] if sonar else 0
+        try:
+            # Reset encoders
+            self.bp.offset_motor_encoder(self.left_motor, self.bp.get_motor_encoder(self.left_motor))
+            self.bp.offset_motor_encoder(self.right_motor, self.bp.get_motor_encoder(self.right_motor))
+            # Setup motor limits
+            self.bp.set_motor_limits(self.left_motor, power_limit, dps_limit)
+            self.bp.set_motor_limits(self.right_motor, power_limit, dps_limit)
+        except IOError as e:
+            print(e)
+            raise
+        
+        self.NUM_OF_PARTICLES = 100
+        self.weight = 1/ self.NUM_OF_PARTICLES
+        self.particle_set = [(100, 500, 0)] * self.NUM_OF_PARTICLES    # location in screen coordinate, corresponding to (0, 0, 0) in real coordinate
+        self.sigma_e = 1.156
+        self.sigma_f = math.pi/180
+        self.sigma_g = math.pi/180
+        self.position = [0, 0]
+        self.direction = "e"    # robot facing direction
+        
+    
+    def convert_coor(self, real_coor, scale=10, offset=100):
+        
+        ''' Convert real robot location to screen location
+        Args:
+            real_coor (list): list of length 2 corresponding real location
+            scale (int): position scaling factor
+            offset (int): shifting screen coordinates to prevent plotting out of range
+        
+        Return:
+            screen_coor (list): list of length 2 corresponding screen location
+        '''
+        
+        x = real_coor[0] * scale + offset
+        y = (40 - real_coor[1]) * scale + offset
+        screen_coor = [x, y]
+        
+        return screen_coor
+    
+    
+    def draw_particle(self, mode, value):
+        
+        ''' function to update and draw particle set after the given motion
+        Args:
+            mode (str): indicating which motion is performed, either "S" or "R", "S for straight line motion" and "R" for rotation
+            value (int): for straight line motion, value is distance moved in real life, for rotation, value is angle in degrees
+        
+        '''
+        
+        if mode == "S":
+            
+            
+            D = value * 10    # convert to screen coordinate
+            
+            for i in range(self.NUM_OF_PARTICLES):
+                e = random.gauss(0, self.sigma_e)
+                f = random.gauss(0, self.sigma_f)
+
+                x = self.particle_set[i][0] + (D + e) * math.cos(self.particle_set[i][2])
+                y = self.particle_set[i][1] + (D + e) * math.sin(self.particle_set[i][2])
+                theta = self.particle_set[i][2] + f
+                         
+                self.particle_set[i] = (x, y, theta)    # update particle location
+        
+            print("drawParticles:" + str(self.particle_set))
+        
+        elif mode == "R":
+            
+            alpha = value / 180 * math.pi    # convert to radians
+            
+            print(f"old: {self.particle_set[0]}")    # to validate theta indeed get updated, since it is not visible on plot, delete in final version!
+            
+            for i in range(self.NUM_OF_PARTICLES):
+                g = random.gauss(0, self.sigma_g)
+
+
+                theta = self.particle_set[i][2] - alpha - g
+                         
+                self.particle_set[i] = (self.particle_set[i][0], self.particle_set[i][1], theta)    # update particle location, only angle is changed
+        
+            print(f"new:{self.particle_set[0]}")    # to validate theta indeed get updated, since it is not visible on plot, delete in final version!
+            
+            print("drawParticles:" + str(self.particle_set))
+        
+        
+    
+    def update_straight(self, D=10):
+        
+        ''' Draw lines and particles on screen corresponding to 1 straight line motion of 10cm in real life
+        Args:
+            D (int): distance moved in real coordinate
+        
+        '''
+        if self.direction == "e":
+                
+            # draw line
+            next_position = [self.position[0] + D, self.position[1]]
+            line = tuple(self.convert_coor(self.position) + self.convert_coor(next_position))
+            print("drawLine:" + str(line))
+            self.position = next_position
+        
+        
+            # draw particle set    
+            self.draw_particle("S", D)
+        
+        elif self.direction == "n":
+                
+            # draw line
+            next_position = [self.position[0], self.position[1] + D]
+            line = tuple(self.convert_coor(self.position) + self.convert_coor(next_position))
+            print("drawLine:" + str(line))
+            self.position = next_position
+        
+        
+            # draw particle set    
+            self.draw_particle("S", D)
+        
+        elif self.direction == "w":
+
+            # draw line
+            next_position = [self.position[0] - D, self.position[1]]
+            line = tuple(self.convert_coor(self.position) + self.convert_coor(next_position))
+            print("drawLine:" + str(line))
+            self.position = next_position
+        
+        
+            # draw particle set    
+            self.draw_particle("S", D)
+                
+        elif self.direction == "s":
+            
+            # draw line
+            next_position = [self.position[0], self.position[1] - D]
+            line = tuple(self.convert_coor(self.position) + self.convert_coor(next_position))
+            print("drawLine:" + str(line))
+            self.position = next_position
+        
+        
+            # draw particle set    
+            self.draw_particle("S", D)
+                
+                
+    def update_rotation(self, alpha=90):
+        
+        ''' Update direction and draw particles on screen corresponding to 1 rotation in real life
+        
+        Args:
+            alpha (int): angle of rotation in degrees
+       
+        '''
+        
+        # update direction
+        if self.direction == "e":
+            
+            self.direction = "n"
+            
+        elif self.direction == "n":
+            
+            self.direction = "w"
+        
+        elif self.direction == "w":
+            
+            self.direction = "s"
+        
+        elif self.direction == "s":
+            
+            self.direction = "e"
+        
+        # draw particle set
+        self.draw_particle("R", alpha)
+
+        
+    
+    @property
+    def status(self):
+        """Return the status of the motors
+        """
+        left_status = self.bp.get_motor_status(self.left_motor)
+        right_status = self.bp.get_motor_status(self.right_motor)
+        return left_status, right_status
+
+
+    @property
+    def speed(self):
+        """Return the speed of the wheels in cm/s
+        """
+        left_speed = self.bp.get_motor_status(self.left_motor)[-1]*self.D
+        right_speed = self.bp.get_motor_status(self.right_motor)[-1]*self.D
+        return left_speed, right_speed
+
+
+    @speed.setter
+    def speed(self, speeds):
+        """Set the dps of the wheels to reach the desired speed (in cm/s)
+
+        Args:
+            speeds (float/int or tuple): The desired speed in cm/s. If 
+            tuple, it must be in the form of (left speed, right speed). 
+            If int or float, both wheels will be set to the same speed.
+        """
+        if isinstance(speeds, tuple):
+            left_speed, right_speed = speeds
+            if abs(left_speed) > self.speed_limit:
+                left_wheel_speed = self.dps_limit if left_speed > 0 else -self.dps_limit
+            else:
+                left_wheel_speed = left_speed / self.D
+            if abs(right_speed) > self.speed_limit:
+                right_wheel_speed = self.dps_limit if right_speed > 0 else -self.dps_limit
+            else:
+                right_wheel_speed = right_speed / self.D
+        else:
+            if abs(speeds) > self.speed_limit:
+                right_wheel_speed = left_wheel_speed = self.dps_limit if speeds > 0 else -self.dps_limit
+            else:
+                right_wheel_speed = left_wheel_speed = speeds / self.D
+        # Set motor angular speed
+        self.bp.set_motor_dps(self.left_motor, left_wheel_speed)
+        self.bp.set_motor_dps(self.right_motor, right_wheel_speed)
+
+
+    @property
+    def encoder(self):
+        """Return the values of the motor encoders in degree. 
+        """
+        left_encoder = self.bp.get_motor_encoder(self.left_motor)
+        right_encoder = self.bp.get_motor_encoder(self.right_motor)
+        return left_encoder, right_encoder
+
+
+    @encoder.setter
+    def encoder(self, target):
+        """Set the desired position (in degree) of the motors using positional control.
+
+        Args:
+            target (int/float or tuple): The angular target (in degree) to be 
+            reached. If tuple, it must be in the form of (left target, right 
+            target). If int or float, both wheels will be set to the same target.
+        """
+        if isinstance(target, tuple):
+            left_target, right_target = target
+            self.bp.set_motor_position(self.left_motor, left_target)
+            self.bp.set_motor_position(self.right_motor, right_target)
+        else:
+            self.bp.set_motor_position(self.left_motor, target)
+            self.bp.set_motor_position(self.right_motor, target)
+
+
+    def clear_encoder(self):
+        """ Reset motor encoders to zero
+        """
+        self.bp.offset_motor_encoder(self.left_motor, self.bp.get_motor_encoder(self.left_motor))
+        self.bp.offset_motor_encoder(self.right_motor, self.bp.get_motor_encoder(self.right_motor))
+
+
+    def stop(self, wait=0.02):
+        self.bp.set_motor_dps(self.left_motor, 0)
+        self.bp.set_motor_dps(self.right_motor, 0)
+        time.sleep(wait)
+    
+
+    def loose(self):
+        """Set the motors to FLOAT.
+        """
+        self.bp.set_motor_power(self.left_motor, self.bp.MOTOR_FLOAT)
+        self.bp.set_motor_power(self.right_motor, self.bp.MOTOR_FLOAT)
+
+
+    def move(self, distance, speed=5, start_delay=0, finish_delay=0):
+        if start_delay > 0:
+            time.sleep(start_delay)
+        angular_target = distance / self.D
+        # Reset encoders
+        self.clear_encoder()
+        # Make the robot move forward
+        if abs(speed) > self.speed_limit:
+            speed = self.speed_limit if speed > 0 else -self.speed_limit
+        estimated_time = distance / speed
+        self.speed = speed
+        time.sleep(estimated_time - 0.2)
+        # Use positional control for correction
+        self.encoder = angular_target
+        for i in range(6):
+            time.sleep(0.05)
+            left_encoder, right_encoder = self.encoder
+            if max(abs(left_encoder - angular_target), abs(right_encoder - angular_target)) < 5:
+                break
+        self.stop()
+        # Wait if required
+        if finish_delay > 0:
+            time.sleep(finish_delay)
+        # Return the actual traveled distance (in cm)
+        return sum(self.encoder)*self.D/2
+
+
+    def rotate(self, angle, angular_speed=30, start_delay=0, finish_delay=0):
+        if start_delay > 0:
+            time.sleep(start_delay)
+        # Calculate the angular target (could be negative)
+        arc_length = angle * self.W / 114.59
+        angular_target = arc_length / self.D
+        angular_speed = abs(angular_speed) if angle > 0 else -abs(angular_speed) # Quality of life
+        # Reset encoders
+        self.clear_encoder()
+        # Rotate the robot
+        speed = angular_speed * self.W / 114.59
+        if abs(speed) > self.speed_limit:
+            speed = self.speed_limit if speed > 0 else -self.speed_limit
+        estimated_time = arc_length / speed
+        self.speed = -speed, speed
+        time.sleep(estimated_time - 0.2)
+        # Use positional control for correction
+        self.encoder = -angular_target, angular_target
+        for i in range(6):
+            time.sleep(0.05)
+            left_encoder, right_encoder = self.encoder
+            if max(abs(left_encoder + angular_target), abs(right_encoder - angular_target)) < 5:
+                break
+        self.stop()
+        # Wait if required
+        if finish_delay > 0:
+            time.sleep(finish_delay)
+        # Return the actual rotated angle (in degree)
+        left_encoder, right_encoder = self.encoder
+        return (right_encoder - left_encoder) * self.D / self.W * 57.296
+
+
+    def circle(self):
+        pass
+    
+
+    @property
+    def sonar(self):
+        if self.sonar_sensor:
+            return self.bp.get_sensor(self.sonar_sensor)
+        else:
+            raise IOError("No sonar registered")
+
+
+    def shutdown(self):
+        self.bp.reset_all()
+
+
+
+if __name__ == "__main__":
+    import brickpi3
+
+    '''# Example
+    BP = brickpi3.BrickPi3()
+    robot = Robot(BP)
+    try:
+        distance = robot.move(30, 6, finish_delay=0.5)
+        print("distance traveled:", distance)
+        angle = robot.rotate(180, 30, finish_delay=0.5)
+        print("angle turned:", angle)
+        distance = robot.move(30, 6)
+        print("distance traveled:", distance)
+    except:
+        robot.shutdown()'''
+    
+    # Draw example
+    BP = brickpi3.BrickPi3()
+    robot = Robot(BP)
+    
+    for i in range(4):
+        
+        for j in range(4):
+        
+            robot.update_straight()
+            time.sleep(1)
+    
+        robot.update_rotation()
+        time.sleep(1)
+
