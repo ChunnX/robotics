@@ -190,6 +190,7 @@ class Robot:
         # slow robot down
         speed = 3 if speed > 0 else -3
         self.speed = -speed, speed
+        time.sleep(0.3)
         for i in range(25):
             time.sleep(0.02)
             left_encoder, right_encoder = self.encoder
