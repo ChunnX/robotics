@@ -13,6 +13,7 @@ def navigateToWaypoint(X, Y):
 if __name__ == "__main__":
     import brickpi3
     from RobotMotion import Robot
+    import numpy as np
     # Example
     BP = brickpi3.BrickPi3()
     robot = Robot(BP)
@@ -35,13 +36,14 @@ if __name__ == "__main__":
             dx = x - position[0]
             dy = y - position[1]
             
-            angle_to_turn = np.arctan2(dx, dy) * 57.296 - angle
+            angle_to_turn = np.arctan2(dy, dx) * 57.296 - angle
             
             turned_angle = robot.rotate(angle_to_turn, 30, finish_delay=0.5)
             moved_distance = robot.move(np.sqrt(dx**2+dy**2), 8, finish_delay=0.5)
             angle += turned_angle
             dx = np.cos(angle / 57.296) * moved_distance
             dy = np.sin(angle / 57.296) * moved_distance
+            print(dx, dy)
             position[0] += dx
             position[1] += dy
             print(position, angle)
