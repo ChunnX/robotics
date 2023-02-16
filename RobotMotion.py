@@ -4,6 +4,8 @@
 import time
 from datetime import datetime
 import brickpi3
+import math
+import random
 
 
 class Robot:
@@ -31,6 +33,7 @@ class Robot:
         if sonar:
             self.sonar_sensor = self.sensors[sonar]
             bp.set_sensor_type(self.sonar_sensor, bp.SENSOR_TYPE.NXT_ULTRASONIC)
+            self.sonar # check if operating
         else:
             self.sonar_sensor = 0
         try:
@@ -48,6 +51,79 @@ class Robot:
         except IOError as e:
             print(e)
             raise
+        
+        # Drawing part
+        self.NUM_OF_PARTICLES = 100
+        self.weight = 1 / self.NUM_OF_PARTICLES
+        self.particle_set = [(100, 500, 0)] * self.NUM_OF_PARTICLES    # location in screen coordinate, corresponding to (0, 0, 0) in real coordinate
+        self.sigma_e = 0.015015309
+        self.sigma_f = math.pi/180 * 0.10275596
+        self.sigma_g = math.pi/180 * 0.21540625
+        self.position = [0, 0]
+        self.direction = 0    # angle between robot facing direction and x-axis, 0 means facing east
+    
+
+    def convert_coor(self, real_coor, scale=10, offset=100):
+        ''' Convert real robot location to screen location
+        Args:
+            real_coor (list): list of length 2 corresponding real location
+            scale (int): position scaling factor
+            offset (int): shifting screen coordinates to prevent plotting out of range
+        
+        Return:
+            screen_coor (list): list of length 2 corresponding screen location
+        '''
+        
+        x = real_coor[0] * scale + offset
+        y = (40 - real_coor[1]) * scale + offset
+        screen_coor = [x, y]
+        
+        return screen_coor
+    
+    
+    def update_straight(self, D=10):
+        ''' Draw lines and particles on screen corresponding to 1 straight line motion of 10cm in real life
+        Args:
+            D (int): distance moved in real coordinate
+        
+        '''
+        # draw line
+        next_position = [self.position[0] + D * math.cos(self.direction), self.position[1] + D * math.sin(self.direction)]
+        line = tuple(self.convert_coor(self.position) + self.convert_coor(next_position))
+        print("drawLine:" + str(line))
+        self.position = next_position
+
+        # draw particle set
+        D *= 10    # convert to screen coordinate
+        for i in range(self.NUM_OF_PARTICLES):
+            e = random.gauss(0, self.sigma_e)
+            f = random.gauss(0, self.sigma_f)
+
+            x = self.particle_set[i][0] + (D + e) * math.cos(self.particle_set[i][2])
+            y = self.particle_set[i][1] + (D + e) * math.sin(self.particle_set[i][2])
+            theta = self.particle_set[i][2] + f
+            self.particle_set[i] = (x, y, theta)    # update particle location
+        print("drawParticles:" + str(self.particle_set))
+                
+                
+    def update_rotation(self, alpha=90):
+        ''' Update direction and draw particles on screen corresponding to 1 rotation in real life
+        
+        Args:
+            alpha (int): angle of rotation in degrees
+       
+        '''
+        # update direction
+        self.direction = self.direction + alpha
+        
+        # draw particle set
+        alpha = alpha / 180 * math.pi    # convert to radians
+        for i in range(self.NUM_OF_PARTICLES):
+            g = random.gauss(0, self.sigma_g)
+            theta = self.particle_set[i][2] - alpha - g
+            self.particle_set[i] = (self.particle_set[i][0], self.particle_set[i][1], theta)    # update particle location, only angle is changed
+        print("drawParticles:" + str(self.particle_set))
+
 
 
     @property
@@ -203,23 +279,21 @@ class Robot:
         # Return the actual rotated angle (in degree)
         left_encoder, right_encoder = self.encoder
         return (right_encoder - left_encoder) * self.D / self.W * 57.296
-
-
-    def circle(self):
-        pass
     
 
     @property
     def sonar(self):
         if not self.sonar_sensor:
             raise IOError("No sonar registered")
-        while True:
+
+        for i in range(100):
             try:
                 distance = self.bp.get_sensor(self.sonar_sensor)
             except brickpi3.SensorError:
-                pass
+                time.sleep(0.01)
             else:
                 return distance
+        raise IOError("Sonar not responding")
 
 
     def shutdown(self):
@@ -234,11 +308,13 @@ if __name__ == "__main__":
     BP = brickpi3.BrickPi3()
     robot = Robot(BP)
     try:
-        distance = robot.move(30, 6, finish_delay=0.5)
-        print("distance traveled:", distance)
-        angle = robot.rotate(180, 30, finish_delay=0.5)
-        print("angle turned:", angle)
-        distance = robot.move(30, 6)
-        print("distance traveled:", distance)
+        for i in range(4):
+            for j in range(4):
+
+                robot.move(10, 6, finish_delay=0.5)
+                robot.update_straight()
+
+            robot.rotate(90, 30, finish_delay=0.5)
+            robot.update_rotation()
     except:
         robot.shutdown()
