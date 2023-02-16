@@ -56,9 +56,9 @@ class Robot:
         self.NUM_OF_PARTICLES = 100
         self.weight = 1 / self.NUM_OF_PARTICLES
         self.particle_set = [(100, 500, 0)] * self.NUM_OF_PARTICLES    # location in screen coordinate, corresponding to (0, 0, 0) in real coordinate
-        self.sigma_e = 0.015015309
-        self.sigma_f = math.pi/180 * 0.10275596
-        self.sigma_g = math.pi/180 * 0.21540625
+        self.sigma_e = 0.01501531
+        self.sigma_f = 0.00179343
+        self.sigma_g = 0.00375954
         self.position = [0, 0]
         self.direction = 0    # angle between robot facing direction and x-axis, 0 means facing east
     
@@ -117,7 +117,7 @@ class Robot:
         self.direction = self.direction + alpha
         
         # draw particle set
-        alpha = alpha / 180 * math.pi    # convert to radians
+        alpha = alpha * 0.0174533    # convert to radians
         for i in range(self.NUM_OF_PARTICLES):
             g = random.gauss(0, self.sigma_g)
             theta = self.particle_set[i][2] - alpha - g
