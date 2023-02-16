@@ -57,11 +57,6 @@ if __name__ == "__main__":
             target = np.array(target)
             break
 
-    # e1 = np.array([512,512])
-    # e2 = np.array([512,512])
-    # delta_e = np.array([791,893])
-    # target = np.array([-12.3, -4.1])
-    
     lr = 0.00000015
     epochs = 5000
     r = 0.03333
@@ -87,7 +82,7 @@ if __name__ == "__main__":
         D -= dL_dD * lr
 
         if (epoch + 1) % 100 == 0:
-            print("loss:", np.sqrt(sum((target-predictions)**2)))
+            print("loss:", np.sqrt(np.mean((target-predictions)**2)))
             if dL_dr * lr < 1e-8 and dL_dD * lr < 1e-10:
                 print("early stop")
                 break
