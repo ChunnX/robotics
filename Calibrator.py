@@ -18,7 +18,7 @@ def calibrate(d11, d12, theta1, d21, d22, theta2, D, W, l1, l2):
         else:
             last_diff = new_diff
 
-    while r_h - r_l > 1e-10:
+    while r_h - r_l > 1e-5:
         d_h = np.cos(theta1*r_h) * 2*d11*d12 - (l1/l2)**2 * (d21**2 + d22**2 + 2*d21*d22*np.cos(r_h*theta2)) + d11**2 + d12**2
         new_r = (r_l + r_h) / 2
 
