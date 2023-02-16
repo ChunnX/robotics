@@ -10,7 +10,7 @@ import random
 
 class Robot:
     def __init__(self, bp, left_motor="A", right_motor="D", 
-        degree_to_distance=0.04782, wheel_separation=14.359, 
+        degree_to_distance=0.04782, wheel_separation=14.639, 
         power_limit=70, dps_limit=400, 
         sonar=0):
         """
@@ -114,7 +114,7 @@ class Robot:
        
         '''
         # update direction
-        self.direction = self.direction + alpha
+        self.direction = self.direction + alpha * 0.0174533
         
         # draw particle set
         alpha = alpha * 0.0174533    # convert to radians
