@@ -15,17 +15,14 @@ l2 = 40
 try:
     robot.move(l1, 10, finish_delay=1)
     left_encoder, right_encoder = robot.encoder
-    d1 = (left_encoder + right_encoder) / 2
-    deviation = right_encoder - left_encoder
+    el_1, er_1 = left_encoder + right_encoder
     robot.rotate(angle, finish_delay=1)
-    left_encoder, right_encoder = robot.encoder
-    delta_e =  right_encoder - left_encoder + deviation
+    elt, ert = robot.encoder
     robot.move(l2, 10)
-    d2 = sum(robot.encoder) / 2
-    print("d1:", round(d1, 1))
-    print("d2:", round(d2, 1))
-    print("delta_e:", delta_e)
-    print("D:", robot.D, "W:", robot.W)
+    el_2, er_2 = robot.encoder
+    print("el_1, er_1:", el_1, er_1)
+    print("elt, ert", elt, ert)
+    print("el_2, er_2:", el_2, er_2)
 except:
     robot.shutdown()
 
