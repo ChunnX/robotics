@@ -127,12 +127,12 @@ class Robot:
 
 
     @property
-    def status(self):
+    def wheel_speed(self):
         """Return the status of the motors
         """
-        left_status = self.bp.get_motor_status(self.left_motor)
-        right_status = self.bp.get_motor_status(self.right_motor)
-        return left_status, right_status
+        left_wheel_speed = self.bp.get_motor_status(self.left_motor)[-1]
+        right_wheel_speed = self.bp.get_motor_status(self.right_motor)[-1]
+        return left_wheel_speed, right_wheel_speed
 
 
     @property
@@ -229,10 +229,17 @@ class Robot:
         # Make the robot move forward
         if abs(speed) > self.speed_limit:
             speed = self.speed_limit if speed > 0 else -self.speed_limit
-        estimated_time = distance / speed
+        estimated_time = distance / speed - abs(3/speed) # move distance - 3 cm
         self.speed = speed
         time.sleep(estimated_time)
-        # Use positional control for correction
+        # slow down to 3cm/s
+        slow_speed = 3 if speed > 0 else -3
+        self.speed = slow_speed
+        time.sleep(0.5)
+        # Finish the rest distance
+        remaining_time = (angular_target - sum(self.encoder)/2) * self.D / slow_speed
+        time.sleep(remaining_time)
+        # Use positional control for final correction
         self.encoder = angular_target
         for i in range(5):
             time.sleep(0.02)
