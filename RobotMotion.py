@@ -10,7 +10,8 @@ import random
 
 class Robot:
     def __init__(self, bp, left_motor="A", right_motor="D", 
-        degree_to_distance=0.04782, wheel_separation=14.639, 
+        degree_to_distance=0.048435, wheel_separation=14.4486, 
+        right_wheel_to_left_wheel_ratio=1.0035822,
         power_limit=70, dps_limit=400, 
         sonar=0):
         """
@@ -18,6 +19,7 @@ class Robot:
         """
         self.bp = bp
         self.D = degree_to_distance
+        self.r = right_wheel_to_left_wheel_ratio
         self.W = wheel_separation
         # Set up limits
         self.dps_limit = dps_limit - 10
@@ -140,7 +142,7 @@ class Robot:
         """Return the speed of the wheels in cm/s
         """
         left_speed = self.bp.get_motor_status(self.left_motor)[-1]*self.D
-        right_speed = self.bp.get_motor_status(self.right_motor)[-1]*self.D
+        right_speed = self.bp.get_motor_status(self.right_motor)[-1]*self.D*self.r
         return left_speed, right_speed
 
 
@@ -159,15 +161,18 @@ class Robot:
                 left_wheel_speed = self.dps_limit if left_speed > 0 else -self.dps_limit
             else:
                 left_wheel_speed = left_speed / self.D
+
             if abs(right_speed) > self.speed_limit:
-                right_wheel_speed = self.dps_limit if right_speed > 0 else -self.dps_limit
+                right_wheel_speed = self.dps_limit/self.r if right_speed > 0 else -self.dps_limit/self.r
             else:
-                right_wheel_speed = right_speed / self.D
+                right_wheel_speed = right_speed / (self.D*self.r)
         else:
             if abs(speeds) > self.speed_limit:
-                right_wheel_speed = left_wheel_speed = self.dps_limit if speeds > 0 else -self.dps_limit
+                left_wheel_speed = self.dps_limit if speeds > 0 else -self.dps_limit
+                right_wheel_speed = left_wheel_speed / self.r
             else:
-                right_wheel_speed = left_wheel_speed = speeds / self.D
+                left_wheel_speed = speeds / self.D
+                right_wheel_speed = left_wheel_speed / self.r
         # Set motor angular speed
         self.bp.set_motor_dps(self.left_motor, left_wheel_speed)
         self.bp.set_motor_dps(self.right_motor, right_wheel_speed)
@@ -223,7 +228,8 @@ class Robot:
     def move(self, distance, speed=5, start_delay=0, finish_delay=0):
         if start_delay > 0:
             time.sleep(start_delay)
-        angular_target = distance / self.D
+        left_target = distance / self.D
+        right_target = left_target / self.r
         # Reset encoders
         self.clear_encoder()
         # Make the robot move forward
@@ -237,21 +243,24 @@ class Robot:
         self.speed = slow_speed
         time.sleep(0.5)
         # Finish the rest distance
-        remaining_time = (angular_target - sum(self.encoder)/2) * self.D / slow_speed
+        left_encoder, right_encoder = self.encoder
+        remaining_time = (left_target - left_encoder + 
+            (right_target - right_encoder)*self.r) * self.D / (slow_speed*2)
         time.sleep(remaining_time)
         # Use positional control for final correction
-        self.encoder = angular_target
+        self.encoder = left_target, right_target
         for i in range(5):
             time.sleep(0.02)
             left_encoder, right_encoder = self.encoder
-            if max(abs(left_encoder - angular_target), abs(right_encoder - angular_target)) < 5:
+            if max(abs(left_encoder - left_target), abs(right_encoder - right_target)) < 5:
                 break
         self.stop()
         # Wait if required
         if finish_delay > 0:
             time.sleep(finish_delay)
         # Return the actual traveled distance (in cm)
-        return sum(self.encoder)*self.D/2
+        left_encoder, right_encoder = self.encoder
+        return (left_encoder + right_encoder*self.r) * self.D / 2
 
 
     def rotate(self, angle, angular_speed=30, start_delay=0, finish_delay=0):
@@ -259,7 +268,7 @@ class Robot:
             time.sleep(start_delay)
         # Calculate the angular target (could be negative)
         arc_length = angle * self.W / 114.59
-        angular_target = arc_length / self.D
+        angular_target = 2 * arc_length / self.D
         angular_speed = abs(angular_speed) if angle > 0 else -abs(angular_speed) # Quality of life
         # Reset encoders
         self.clear_encoder()
@@ -277,7 +286,7 @@ class Robot:
         for i in range(25):
             time.sleep(0.02)
             left_encoder, right_encoder = self.encoder
-            if abs(2*angular_target) - abs(right_encoder - left_encoder) < 5:
+            if abs(angular_target - right_encoder * self.r + left_encoder) < 5:
                 break
         self.stop()
         # Wait if required
@@ -285,7 +294,7 @@ class Robot:
             time.sleep(finish_delay)
         # Return the actual rotated angle (in degree)
         left_encoder, right_encoder = self.encoder
-        return (right_encoder - left_encoder) * self.D / self.W * 57.296
+        return (right_encoder*self.r - left_encoder) * self.D / self.W * 57.296
     
 
     @property
