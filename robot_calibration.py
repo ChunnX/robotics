@@ -15,7 +15,7 @@ l2 = 40
 try:
     robot.move(l1, 10, finish_delay=1)
     left_encoder, right_encoder = robot.encoder
-    el_1, er_1 = left_encoder + right_encoder
+    el_1, er_1 = left_encoder, right_encoder
     robot.rotate(angle, finish_delay=1)
     elt, ert = robot.encoder
     robot.move(l2, 10)

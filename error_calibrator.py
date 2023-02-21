@@ -62,7 +62,7 @@ if __name__ == "__main__":
         
         var = distance.pow(2) * kg.pow(2) * turned_angle + 2 / 3 * distance.pow(3) * kf.pow(2)
         loss = (L.pow(2) / var + var.log()).mean()
-        loss.backward() 
+        loss.backward()
 
         # print(kg.grad.item())
 
