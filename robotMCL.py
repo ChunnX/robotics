@@ -61,11 +61,16 @@ class Robot:
         self.weight = np.ones(self.NUM_OF_PARTICLES) * (1/self.NUM_OF_PARTICLES)
         self.cum_weight = np.zeros(self.NUM_OF_PARTICLES)
         self.particle_set = [(100, 500, 0)] * self.NUM_OF_PARTICLES    # location in screen coordinate, corresponding to (0, 0, 0) in real coordinate
+
+        self.position = [0, 0]
+        self.direction = 0  # angle between robot facing direction and x-axis, 0 means facing east
+
+        self.k_e = 0.001
+        self.k_f = 0.002    # to be calculated
+        self.k_g = 0.003    # to be calculated
         self.sigma_e = 0.01501531
         self.sigma_f = 0.00179343
         self.sigma_g = 0.00375954
-        self.position = [0, 0]
-        self.direction = 0  # angle between robot facing direction and x-axis, 0 means facing east
 
     def normalise_weight(self):
         self.weight /= sum(self.weight)
