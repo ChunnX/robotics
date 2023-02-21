@@ -241,7 +241,6 @@ class Robot:
         # slow down to 3cm/s
         slow_speed = 3 if speed > 0 else -3
         self.speed = slow_speed
-        time.sleep(0.5)
         # Finish the rest distance
         left_encoder, right_encoder = self.encoder
         remaining_time = (left_target - left_encoder + 
@@ -282,7 +281,6 @@ class Robot:
         # slow robot down
         speed = 3 if speed > 0 else -3
         self.speed = -speed, speed
-        time.sleep(0.25)
         for i in range(25):
             time.sleep(0.02)
             left_encoder, right_encoder = self.encoder
