@@ -61,7 +61,7 @@ class Robot:
         self.weight = np.ones(self.NUM_OF_PARTICLES) * (1 / self.NUM_OF_PARTICLES)
         self.cum_weight = np.zeros(self.NUM_OF_PARTICLES)
         # location in screen coordinate, corresponding to (0, 0, 0) in real coordinate
-        self.particle_set = [(100, 500, 0)] * self.NUM_OF_PARTICLES
+        self.particle_set = [(0, 0, 0)] * self.NUM_OF_PARTICLES
         self.sigma_e = 0.01501531
         self.sigma_f = 0.00179343
         self.sigma_g = 0.00375954
