@@ -3,6 +3,7 @@ from likelihood import calculate_likelihood
 from particleDataStructures import *
 import numpy as np
 import copy
+import random
 
 
 NUM_OF_PARTICLES = 100
