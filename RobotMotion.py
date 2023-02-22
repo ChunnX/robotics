@@ -55,78 +55,15 @@ class Robot:
             raise
         
         # Drawing part
-        self.NUM_OF_PARTICLES = 100
-        self.weight = 1 / self.NUM_OF_PARTICLES
-        self.particle_set = [(100, 500, 0)] * self.NUM_OF_PARTICLES    # location in screen coordinate, corresponding to (0, 0, 0) in real coordinate
-        self.sigma_e = 0.01501531
-        self.sigma_f = 0.00179343
-        self.sigma_g = 0.00375954
-        self.position = [0, 0]
-        self.direction = 0    # angle between robot facing direction and x-axis, 0 means facing east
+        # self.NUM_OF_PARTICLES = 100
+        # self.weight = 1 / self.NUM_OF_PARTICLES
+        # self.particle_set = [(100, 500, 0)] * self.NUM_OF_PARTICLES    # location in screen coordinate, corresponding to (0, 0, 0) in real coordinate
+        # self.sigma_e = 0.01501531
+        # self.sigma_f = 0.00179343
+        # self.sigma_g = 0.00375954
+        # self.position = [0, 0]
+        # self.direction = 0    # angle between robot facing direction and x-axis, 0 means facing east
     
-
-    def convert_coor(self, real_coor, scale=10, offset=100):
-        ''' Convert real robot location to screen location
-        Args:
-            real_coor (list): list of length 2 corresponding real location
-            scale (int): position scaling factor
-            offset (int): shifting screen coordinates to prevent plotting out of range
-        
-        Return:
-            screen_coor (list): list of length 2 corresponding screen location
-        '''
-        
-        x = real_coor[0] * scale + offset
-        y = (40 - real_coor[1]) * scale + offset
-        screen_coor = [x, y]
-        
-        return screen_coor
-    
-    
-    def update_straight(self, D=10):
-        ''' Draw lines and particles on screen corresponding to 1 straight line motion of 10cm in real life
-        Args:
-            D (int): distance moved in real coordinate
-        
-        '''
-        # draw line
-        next_position = [self.position[0] + D * math.cos(self.direction), self.position[1] + D * math.sin(self.direction)]
-        line = tuple(self.convert_coor(self.position) + self.convert_coor(next_position))
-        print("drawLine:" + str(line))
-        self.position = next_position
-
-        # draw particle set
-        D *= 10    # convert to screen coordinate
-        for i in range(self.NUM_OF_PARTICLES):
-            e = random.gauss(0, self.sigma_e)
-            f = random.gauss(0, self.sigma_f)
-
-            x = self.particle_set[i][0] + (D + e) * math.cos(self.particle_set[i][2])
-            y = self.particle_set[i][1] + (D + e) * math.sin(self.particle_set[i][2])
-            theta = self.particle_set[i][2] + f
-            self.particle_set[i] = (x, y, theta)    # update particle location
-        print("drawParticles:" + str(self.particle_set))
-                
-                
-    def update_rotation(self, alpha=90):
-        ''' Update direction and draw particles on screen corresponding to 1 rotation in real life
-        
-        Args:
-            alpha (int): angle of rotation in degrees
-       
-        '''
-        # update direction
-        self.direction = self.direction + alpha * 0.0174533
-        
-        # draw particle set
-        alpha = alpha * 0.0174533    # convert to radians
-        for i in range(self.NUM_OF_PARTICLES):
-            g = random.gauss(0, self.sigma_g)
-            theta = self.particle_set[i][2] - alpha - g
-            self.particle_set[i] = (self.particle_set[i][0], self.particle_set[i][1], theta)    # update particle location, only angle is changed
-        print("drawParticles:" + str(self.particle_set))
-
-
 
     @property
     def wheel_speed(self):
@@ -235,17 +172,19 @@ class Robot:
         # Make the robot move forward
         if abs(speed) > self.speed_limit:
             speed = self.speed_limit if speed > 0 else -self.speed_limit
-        estimated_time = distance / speed - abs(3/speed) # move distance - 3 cm
-        self.speed = speed
-        time.sleep(estimated_time)
-        # slow down to 3cm/s
-        slow_speed = 3 if speed > 0 else -3
+        estimated_time = distance / speed - abs(3/speed) # move (distance - 3cm)
+        if estimated_time > 0:
+            self.speed = speed
+            time.sleep(estimated_time)
+        # slow down to 5cm/s
+        slow_speed = 5 if speed > 0 else -5
         self.speed = slow_speed
         # Finish the rest distance
         left_encoder, right_encoder = self.encoder
         remaining_time = (left_target - left_encoder + 
             (right_target - right_encoder)*self.r) * self.D / (slow_speed*2)
-        time.sleep(remaining_time)
+        if remaining_time > 0:
+            time.sleep(remaining_time)
         # Use positional control for final correction
         self.encoder = left_target, right_target
         for i in range(5):
@@ -276,8 +215,9 @@ class Robot:
         if abs(speed) > self.speed_limit:
             speed = self.speed_limit if speed > 0 else -self.speed_limit
         estimated_time = arc_length / speed - abs(1/speed)
-        self.speed = -speed, speed
-        time.sleep(estimated_time)
+        if estimated_time > 0:
+            self.speed = -speed, speed
+            time.sleep(estimated_time)
         # slow robot down
         speed = 3 if speed > 0 else -3
         self.speed = -speed, speed
