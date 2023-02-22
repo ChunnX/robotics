@@ -1,2 +1,3 @@
-from robotMCL import Robot
+from RobotMotion import Robot
 
+robot = Robot()
