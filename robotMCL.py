@@ -13,10 +13,10 @@ import numpy as np
 
 class Robot:
     def __init__(self, bp, left_motor="A", right_motor="D",
-        degree_to_distance=0.048435, wheel_separation=14.4486,
-        right_wheel_to_left_wheel_ratio=1.0035822,
-        power_limit=70, dps_limit=400,
-        sonar=0):
+                 degree_to_distance=0.048435, wheel_separation=14.4486,
+                 right_wheel_to_left_wheel_ratio=1.0035822,
+                 power_limit=70, dps_limit=400,
+                 sonar=0):
         """
         The Robot class for brickpi3 robot.
         """
@@ -38,7 +38,7 @@ class Robot:
         if sonar:
             self.sonar_sensor = self.sensors[sonar]
             bp.set_sensor_type(self.sonar_sensor, bp.SENSOR_TYPE.NXT_ULTRASONIC)
-            self.sonar # check if operating
+            self.sonar  # check if operating
         else:
             self.sonar_sensor = 0
         try:
@@ -58,9 +58,10 @@ class Robot:
             raise
 
         self.NUM_OF_PARTICLES = 100
-        self.weight = np.ones(self.NUM_OF_PARTICLES) * (1/self.NUM_OF_PARTICLES)
+        self.weight = np.ones(self.NUM_OF_PARTICLES) * (1 / self.NUM_OF_PARTICLES)
         self.cum_weight = np.zeros(self.NUM_OF_PARTICLES)
-        self.particle_set = [(100, 500, 0)] * self.NUM_OF_PARTICLES    # location in screen coordinate, corresponding to (0, 0, 0) in real coordinate
+        # location in screen coordinate, corresponding to (0, 0, 0) in real coordinate
+        self.particle_set = [(100, 500, 0)] * self.NUM_OF_PARTICLES
 
         self.position = [0, 0]
         self.direction = 0  # angle between robot facing direction and x-axis, 0 means facing east
@@ -68,9 +69,10 @@ class Robot:
         self.k_e = 0.001
         self.k_f = 0.002    # to be calculated
         self.k_g = 0.003    # to be calculated
-        self.sigma_e = 0.01501531
-        self.sigma_f = 0.00179343
-        self.sigma_g = 0.00375954
+
+        # self.sigma_e = 0.01501531
+        # self.sigma_f = 0.00179343
+        # self.sigma_g = 0.00375954
 
     def normalise_weight(self):
         self.weight /= sum(self.weight)
@@ -129,11 +131,10 @@ class Robot:
         return screen_coor
 
     def update_straight(self, D=10):
-        ''' Draw lines and particles on screen corresponding to 1 straight line motion of 10cm in real life
+        """ Draw lines and particles on screen corresponding to 1 straight line motion of 10cm in real life
         Args:
             D (int): distance moved in real coordinate
-
-        '''
+        """
         # draw line
         next_position = [self.position[0] + D * math.cos(self.direction),
                          self.position[1] + D * math.sin(self.direction)]
@@ -144,29 +145,30 @@ class Robot:
         # draw particle set
         D *= 10  # convert to screen coordinate
         for i in range(self.NUM_OF_PARTICLES):
-            e = random.gauss(0, self.sigma_e)
-            f = random.gauss(0, self.sigma_f)
+            e = random.gauss(0, D * self.k_e)
+            f = random.gauss(0, D * self.k_f)
+            s = random.gauss(D * f / 2, D ** 3 * self.k_f / 12)
 
-            x = self.particle_set[i][0] + (D + e) * math.cos(self.particle_set[i][2])
-            y = self.particle_set[i][1] + (D + e) * math.sin(self.particle_set[i][2])
+            alpha = math.atan(s / (D + e))
+            d = (D + e) ** 2 + s ** 2
+            x = self.particle_set[i][0] + d * math.cos(self.particle_set[i][2] + alpha)
+            y = self.particle_set[i][1] + d * math.sin(self.particle_set[i][2] + alpha)
             theta = self.particle_set[i][2] + f
             self.particle_set[i] = (x, y, theta)  # update particle location
         print("drawParticles:" + str(self.particle_set))
 
     def update_rotation(self, alpha=90):
-        ''' Update direction and draw particles on screen corresponding to 1 rotation in real life
-
+        """ Update direction and draw particles on screen corresponding to 1 rotation in real life
         Args:
             alpha (int): angle of rotation in degrees
-
-        '''
+        """
         # update direction
         self.direction = self.direction + alpha * 0.0174533
 
         # draw particle set
         alpha = alpha * 0.0174533  # convert to radians
         for i in range(self.NUM_OF_PARTICLES):
-            g = random.gauss(0, self.sigma_g)
+            g = random.gauss(0, alpha * self.k_g)
             theta = self.particle_set[i][2] - alpha - g
             # update particle location, only angle is changed
             self.particle_set[i] = (self.particle_set[i][0], self.particle_set[i][1], theta)
@@ -348,6 +350,23 @@ class Robot:
 if __name__ == "__main__":
     import brickpi3
 
+    canvas = Canvas()  # global canvas we are going to draw on
+    mymap = Map()
+    # Definitions of walls
+    mymap.add_wall((0, 0, 0, 168))  # a: O to A
+    mymap.add_wall((0, 168, 84, 168))  # b: A to B
+    mymap.add_wall((84, 126, 84, 210))  # c: C to D
+    mymap.add_wall((84, 210, 168, 210))  # d: D to E
+    mymap.add_wall((168, 210, 168, 84))  # e: E to F
+    mymap.add_wall((168, 84, 210, 84))  # f: F to G
+    mymap.add_wall((210, 84, 210, 0))  # g: G to H
+    mymap.add_wall((210, 0, 0, 0))  # h: H to O
+    mymap.draw()
+
+    # TODO: waypoint navigation
+
+
+
 
 
     # # Example
@@ -375,4 +394,3 @@ if __name__ == "__main__":
     #
     #     robot.rotate(90, 30, finish_delay=1)
     #     robot.update_rotation()
-
