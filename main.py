@@ -39,9 +39,8 @@ def draw_particle(robot):
     draw particle set on canvas
     '''
     # convert particle into form that canvas can accept, i.e. (x, y, theta, weight)
-    data = [(robot.particle_set[i, 0], robot.particle_set[i, 1], -robot.particle_set[i, 2], robot.weight[i]) for i in range(robot.NUM_OF_PARTICLES)]
+    data = [(robot.particle_set[i, 0], robot.particle_set[i, 1], -57.296*robot.particle_set[i, 2], robot.weight[i]) for i in range(NUM_OF_PARTICLES)]
     canvas.drawParticles(data)
-
 
 
 def update_straight(robot, D=20):
@@ -58,8 +57,8 @@ def update_straight(robot, D=20):
     f = random.normal(0, np.sqrt(abs(D*k_f)), NUM_OF_PARTICLES)
     s = random.normal(f/2, np.sqrt(abs(D**3 * k_f / 12)))
     theta = robot.particle_set[:, 2]
-    dx = e * np.cos(theta) - s * np.sin(theta)
-    dy = np.sin(theta) * e + s * np.cos(theta)
+    dx = (e + D) * np.cos(theta) - s * np.sin(theta)
+    dy = np.sin(theta) * (e + D) + s * np.cos(theta)
     robot.particle_set[:, 0] += dx
     robot.particle_set[:, 1] += dy
     robot.particle_set[:, 2] += f 
@@ -80,7 +79,7 @@ def update_rotation(robot, alpha=90):
 
     # update particle set
     g = random.normal(0, np.sqrt(abs(k_g * alpha)), NUM_OF_PARTICLES)
-    robot.particle_set[:, 2] += g
+    robot.particle_set[:, 2] += (g + alpha)
 
 
 
@@ -106,6 +105,8 @@ def calculate_likelihood(x, y, theta, z):
                     distance = d
                     dx, dy = pa - pb
 
+    if np.isinf(distance):
+        return 0
     cosine_angle = abs(vx * dx + vy * dy) / np.sqrt(dx**2 + dy**2)
     if cosine_angle > 0.643:
         return K
@@ -163,7 +164,6 @@ def navigateToWaypoint(robot, coordinates):
     position = robot.position
     angle = robot.direction * 57.296
     x, y = coordinates
-
     dx = x - position[0]
     dy = y - position[1]
 
@@ -172,7 +172,6 @@ def navigateToWaypoint(robot, coordinates):
         angle_to_turn = angle_to_turn - 360 if angle_to_turn > 0 else 360 + angle_to_turn
     else:
         angle_to_turn = angle_to_turn
-
     distance_to_move = np.sqrt(dx**2 + dy**2)
 
     turned_angle = robot.rotate(angle_to_turn, 30, finish_delay=0.5)
@@ -198,15 +197,18 @@ def navigateToWaypoint(robot, coordinates):
 
 
 
-if __name__ == "__main_":
+if __name__ == "__main__":
     BP = brickpi3.BrickPi3()
     robot = Robot(BP, sonar=2)
 
-    robot.particle_set = np.zeros((NUM_OF_PARTICLES, 3))
-    robot.particle_set[:, 2] = random.normal(0, 0.02, NUM_OF_PARTICLES) # initial angle error of 1 degree
     robot.position = np.array([84, 30]) # initial location
     robot.direction = 0 # in rad
     robot.weight = np.ones(NUM_OF_PARTICLES, dtype=np.float32) / NUM_OF_PARTICLES
+
+    robot.particle_set = np.zeros((NUM_OF_PARTICLES, 3))
+    robot.particle_set[:, 0] = 84
+    robot.particle_set[:, 1] = 30
+    robot.particle_set[:, 2] = random.normal(0, 0.02, NUM_OF_PARTICLES) # initial angle error of 1 degree
 
     # Monte Carlo Localisation
     draw_particle(robot)
