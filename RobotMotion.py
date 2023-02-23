@@ -162,7 +162,7 @@ class Robot:
         self.bp.set_motor_power(self.right_motor, self.bp.MOTOR_FLOAT)
 
 
-    def move(self, distance, speed=5, start_delay=0, finish_delay=0):
+    def move(self, distance, speed=8, start_delay=0, finish_delay=0):
         if start_delay > 0:
             time.sleep(start_delay)
         left_target = distance / self.D
@@ -264,11 +264,9 @@ if __name__ == "__main__":
     try:
         for i in range(4):
             for j in range(4):
-
                 robot.move(10, 6, finish_delay=0.5)
-                robot.update_straight()
-
             robot.rotate(90, 30, finish_delay=0.5)
-            robot.update_rotation()
     except:
         robot.shutdown()
+        raise
+    robot.shutdown()
