@@ -2,13 +2,14 @@ import numpy as np
 
 
 class Robot:
-    def __init__(self, bp):
+    def __init__(self, bp, sonar=0):
         self.bp = bp
         self.D = 0.04782
         self.W = 14.36
         self.encoder = np.zeros(2, dtype=np.int32)
     
-    def move(self, distance, speed=5, start_delay=0 finish_delay=0):
+    
+    def move(self, distance, speed=5, start_delay=0, finish_delay=0):
         self.clear_encoder()
         degree = distance / self.D
         self.encoder[0] += np.int32(degree + int(np.random.normal(0, 5)))
@@ -33,4 +34,8 @@ class Robot:
 
     def shutdown(self):
         pass
+    
+    @property
+    def sonar(self):
+        return 20
 
