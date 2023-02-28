@@ -20,9 +20,9 @@ try:
     elt, ert = robot.encoder
     robot.move(l2, 10)
     el_2, er_2 = robot.encoder
-    print("el_1, er_1:", el_1, er_1)
-    print("elt, ert", elt, ert)
-    print("el_2, er_2:", el_2, er_2)
+    print("e1l, e1r:", el_1, er_1)
+    print("etl, etr", elt, ert)
+    print("e2l, e2r:", el_2, er_2)
 except:
     robot.shutdown()
 
