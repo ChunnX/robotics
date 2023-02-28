@@ -41,7 +41,7 @@ if __name__ == "__main__":
 
     D = torch.tensor([0.48], dtype=torch.double, requires_grad=True)
     W = torch.tensor([14.45], dtype=torch.double, requires_grad=True)
-    r = torch.tensor([1.05], dtype=torch.double, requires_grad=True)
+    r = torch.tensor([1.05], dtype=torch.double, requires_grad=True) # 如果报错 改成小于1
 
     optimiser = torch.optim.SGD((D, W, r), lr=lr)
     for epoch in range(epochs):
