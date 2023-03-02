@@ -10,8 +10,8 @@ import random
 
 class Robot:
     def __init__(self, bp, left_motor="A", right_motor="D", 
-        degree_to_distance=0.059, wheel_separation=14.4486, 
-        right_wheel_to_left_wheel_ratio=1.0035822,
+        degree_to_distance=0.0622, wheel_separation=14.447745, 
+        right_wheel_to_left_wheel_ratio=1.00603,
         power_limit=70, dps_limit=600, 
         sonar=0):
         """
@@ -163,12 +163,12 @@ class Robot:
         time.sleep(wait)
 
 
-    def move(self, distance, speed=8, start_delay=0, finish_delay=0):
+    def move(self, distance, speed=20, start_delay=0, finish_delay=0):
         if start_delay > 0:
             time.sleep(start_delay)
         left_target = distance / self.D
         right_target = left_target / self.r
-        slow_down_distance = speed * 0.3
+        slow_down_distance = speed * 0.25
         # Reset encoders
         self.clear_encoder()
         # Make the robot move forward
@@ -205,7 +205,7 @@ class Robot:
         return (left_encoder + right_encoder*self.r) * self.D / 2
 
 
-    def rotate(self, angle, angular_speed=30, start_delay=0, finish_delay=0):
+    def rotate(self, angle, angular_speed=60, start_delay=0, finish_delay=0):
         if start_delay > 0:
             time.sleep(start_delay)
         # Calculate the angular target (could be negative)
