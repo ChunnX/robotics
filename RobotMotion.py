@@ -10,8 +10,8 @@ import random
 
 class Robot:
     def __init__(self, bp, left_motor="A", right_motor="D", 
-        degree_to_distance=0.0657, wheel_separation=14.0261, 
-        right_wheel_to_left_wheel_ratio=0.95095,
+        degree_to_distance=0.0661777, wheel_separation=14.0, 
+        right_wheel_to_left_wheel_ratio=0.941456,
         power_limit=70, dps_limit=600, 
         sonar=0):
         """
