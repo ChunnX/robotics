@@ -10,8 +10,8 @@ import random
 
 class Robot:
     def __init__(self, bp, left_motor="A", right_motor="D", 
-        degree_to_distance=0.0622, wheel_separation=14.447745, 
-        right_wheel_to_left_wheel_ratio=1.00603,
+        degree_to_distance=0.0657, wheel_separation=14.0261, 
+        right_wheel_to_left_wheel_ratio=0.95095,
         power_limit=70, dps_limit=600, 
         sonar=0):
         """
@@ -225,7 +225,7 @@ class Robot:
         # slow robot down
         speed = 3 if speed > 0 else -3
         self.speed = -speed, speed
-        for i in range(25):
+        for i in range(40):
             time.sleep(0.02)
             left_encoder, right_encoder = self.encoder
             if abs(angular_target - right_encoder * self.r + left_encoder) < 5:
