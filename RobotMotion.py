@@ -155,12 +155,12 @@ class Robot:
         time.sleep(wait)
     
 
-    def loose(self, time=0.02):
+    def loose(self, wait=0.02):
         """Set the motors to FLOAT.
         """
         self.bp.set_motor_power(self.left_motor, self.bp.MOTOR_FLOAT)
         self.bp.set_motor_power(self.right_motor, self.bp.MOTOR_FLOAT)
-        time.sleep(time)
+        time.sleep(wait)
 
 
     def move(self, distance, speed=8, start_delay=0, finish_delay=0):
