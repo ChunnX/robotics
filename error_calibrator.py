@@ -80,57 +80,109 @@ if __name__ == "__main__":
                            6.5, 8, 9.3, 12.6, 10.5, 
                            16.5, 3.9, 5, -4.9, 1.7], dtype=torch.float32)
     
+    data_size = len(target)
 
-    lr = 0.00001
-    epochs = 10000
+    lr1 = 0.005
+    epochs1 = 10000
 
+    lr2 = 0.00001
+    epochs2 = 10000
 
-    D = 0.06569817277947267
-    W = 14.026094445799139
-    r = 0.9509515851484188
+    D = 0.066
+    W = 14.4
+    r = 0.95
+    var = torch.ones(data_size, dtype=torch.double)
 
-    kf = torch.tensor([0.01], dtype=torch.double, requires_grad=True)
-    kg = torch.tensor([0.01], dtype=torch.double, requires_grad=True)
+    for i in range(10):
+        D = torch.tensor([D*10], dtype=torch.double, requires_grad=True)
+        W = torch.tensor([W], dtype=torch.double, requires_grad=True)
+        r = torch.tensor([r], dtype=torch.double, requires_grad=True)
+        optimiser1 = torch.optim.Adam((D, W, r), lr=lr1)
 
-    optimiser = torch.optim.Adam((kg, kf), lr=lr)
+        for epoch in range(epochs1):
+            optimiser1.zero_grad()
+            delta_e1 = r*e1r - e1l
+            sum_e1 = e1l + r*e1r
 
-    delta_e1 = r*e1r - e1l
-    sum_e1 = e1l + r*e1r
+            delta_e2 = r*e2r - e2l
+            sum_e2 = e2r*r + e2l 
 
-    delta_e2 = r*e2r - e2l
-    sum_e2 = e2r*r + e2l 
+            delta_et = etr*r - etl
 
-    delta_et = etr*r - etl
+            sine1 = torch.sin(delta_e1*(D/10) / (2*W))
+            l1 = sine1 * sum_e1 / delta_e1 * W
 
-    sine1 = torch.sin(delta_e1*D / (2*W))
-    l1 = sine1 * sum_e1 / delta_e1 * W
+            sine2 = torch.sin(delta_e2*(D/10) / (2*W))
+            l2 = sine2 * sum_e1 / delta_e2 * W
+            
+            turned_angle = (delta_et + delta_e1) * (D/10) / W
+            cosine_term = torch.cos(turned_angle)
+            
+            angle = turned_angle.detach()
+            angle = angle - torch.floor(0.5*angle/torch.pi)*torch.pi*2
+            L = torch.sqrt(l1.pow(2) + l2.pow(2) + 2*l1*l2*cosine_term)
+            out = torch.where(angle > torch.pi, L, -L)
 
-    sine2 = torch.sin(delta_e2*D / (2*W))
-    l2 = sine2 * sum_e1 / delta_e2 * W
-    
-    turned_angle = (delta_et + delta_e1) * D / W
-    cosine_term = torch.cos(turned_angle)
+            if epoch % 2:
+                loss1 = ((out - target).pow(2)/var).mean()
+            else:
+                loss1 = (((out - target)/var.sqrt()).mean()).pow(2)*data_size
+            loss1.backward() 
 
-    rotated_angle = delta_et * D / W
-    
-    angle = turned_angle.detach()
-    angle = angle - torch.floor(0.5*angle/torch.pi)*torch.pi*2
+            optimiser1.step()
+        print("mean:", ((out - target)/var.sqrt()).mean())
 
-    distance = (l1 + l2) / 2
-    L = target - 2*torch.sin((angle-torch.pi)/2)*distance
+        D = D.item()/10
+        W = W.item()
+        r = r.item()
 
-    for epoch in range(epochs):
-        optimiser.zero_grad()
+        kf = torch.tensor([0.01], dtype=torch.double, requires_grad=True)
+        kg = torch.tensor([0.01], dtype=torch.double, requires_grad=True)
+
+        optimiser2 = torch.optim.Adam((kg, kf), lr=lr2)
+
+        delta_e1 = r*e1r - e1l
+        sum_e1 = e1l + r*e1r
+
+        delta_e2 = r*e2r - e2l
+        sum_e2 = e2r*r + e2l 
+
+        delta_et = etr*r - etl
+
+        sine1 = torch.sin(delta_e1*D / (2*W))
+        l1 = sine1 * sum_e1 / delta_e1 * W
+
+        sine2 = torch.sin(delta_e2*D / (2*W))
+        l2 = sine2 * sum_e1 / delta_e2 * W
         
-        var = distance.pow(2) * kg.pow(2) * rotated_angle + 2 / 3 * distance.pow(3) * kf.pow(2)
-        loss = (L.pow(2) / var + var.log()).mean()
-        loss.backward()
+        turned_angle = (delta_et + delta_e1) * D / W
+        cosine_term = torch.cos(turned_angle)
 
-        # print(kg.grad.item())
+        rotated_angle = delta_et * D / W
+    
+        angle = turned_angle.detach()
+        angle = angle - torch.floor(0.5*angle/torch.pi)*torch.pi*2
 
-        optimiser.step()
+        distance = (l1 + l2) / 2
+        L = target - 2*torch.sin((angle-torch.pi)/2)*distance
 
-print("loss:", loss.item())
+        for epoch in range(epochs2):
+            optimiser2.zero_grad()
+            
+            var = distance.pow(2) * kg.pow(2) * rotated_angle + 2 / 3 * distance.pow(3) * kf.pow(2)
+            loss2 = (L.pow(2) / var + var.log()).mean()
+            loss2.backward()
+
+            optimiser2.step()
+        
+        var = var.detach()
+
+
+print("loss1:", loss1.item())
+print("loss2:", loss2.item())
+print("D:", D)
+print("W:", W)
+print("r:", r)
 print("kg:", kg.pow(2).item())
 print("kf:", kf.pow(2).item())
 
