@@ -2,6 +2,7 @@ import brickpi3
 import numpy as np
 from numpy import random
 import time
+import math
 from RobotMotion import Robot
 from statistics import median
 from particleDataStructures import Map, Canvas
@@ -45,20 +46,22 @@ def draw_particle(robot):
 
 def update_straight(robot, D=20):
     # update robot position
-    robot.position[0] += D * np.cos(robot.direction)
-    robot.position[1] += D * np.sin(robot.direction)
+    robot.position[0] += D * math.cos(robot.direction)
+    robot.position[1] += D * math.sin(robot.direction)
 
     # parameters for update
     k_e = 0.00625
     k_f = 1.4437e-5
 
     # update particle set
-    e = random.normal(0, np.sqrt(abs(k_e*D)), NUM_OF_PARTICLES)
-    f = random.normal(0, np.sqrt(abs(D*k_f)), NUM_OF_PARTICLES)
-    s = random.normal(f/2, np.sqrt(abs(D**3 * k_f / 12)))
+    e = random.normal(0, math.sqrt(abs(k_e*D)), NUM_OF_PARTICLES)
+    f = random.normal(0, math.sqrt(abs(D*k_f)), NUM_OF_PARTICLES)
+    s = random.normal(f/2, math.sqrt(abs(D**3 * k_f / 12)))
     theta = robot.particle_set[:, 2]
-    dx = (e + D) * np.cos(theta) - s * np.sin(theta)
-    dy = np.sin(theta) * (e + D) + s * np.cos(theta)
+    cosine_theta = np.cos(theta)
+    sine_theta = np.sin(theta)
+    dx = (e + D) * cosine_theta - s * sine_theta
+    dy = sine_theta * (e + D) + s * cosine_theta
     robot.particle_set[:, 0] += dx
     robot.particle_set[:, 1] += dy
     robot.particle_set[:, 2] += f 
@@ -78,7 +81,7 @@ def update_rotation(robot, alpha=90):
     k_g = 1e-4
 
     # update particle set
-    g = random.normal(0, np.sqrt(abs(k_g * alpha)), NUM_OF_PARTICLES)
+    g = random.normal(0, math.sqrt(abs(k_g * alpha)), NUM_OF_PARTICLES)
     robot.particle_set[:, 2] += (g + alpha)
 
 
@@ -91,8 +94,8 @@ def calculate_likelihood(x, y, theta, z):
     distance = np.inf
 
     position = np.array([x, y], dtype=np.float32)
-    vx = np.cos(theta)
-    vy = np.sin(theta)
+    vx = math.cos(theta)
+    vy = math.sin(theta)
     for pa, pb in walls:
         ax, ay = pa - position
         bx, by = pb - position
@@ -107,11 +110,11 @@ def calculate_likelihood(x, y, theta, z):
 
     if np.isinf(distance):
         return 0
-    cosine_angle = abs(vx * dx + vy * dy) / np.sqrt(dx**2 + dy**2)
+    cosine_angle = abs(vx * dx + vy * dy) / math.sqrt(dx**2 + dy**2)
     if cosine_angle > 0.643:
         return K
     else:
-        return np.exp(-(z - distance) ** 2 / (2 * sonar_sigma ** 2)) + K
+        return math.exp(-(z - distance) ** 2 / (2 * sonar_sigma ** 2)) + K
 
 
 
@@ -167,12 +170,12 @@ def navigateToWaypoint(robot, coordinates):
     dx = x - position[0]
     dy = y - position[1]
 
-    angle_to_turn = np.arctan2(dy, dx) * 57.296 - angle  # Calculate angle want to rotate
+    angle_to_turn = math.atan2(dy, dx) * 57.296 - angle  # Calculate angle want to rotate
     if abs(angle_to_turn) > 180:
         angle_to_turn = angle_to_turn - 360 if angle_to_turn > 0 else 360 + angle_to_turn
     else:
         angle_to_turn = angle_to_turn
-    distance_to_move = np.sqrt(dx**2 + dy**2)
+    distance_to_move = math.sqrt(dx**2 + dy**2)
 
     turned_angle = robot.rotate(angle_to_turn, 30, finish_delay=0.5)
     update_rotation(robot, turned_angle)
