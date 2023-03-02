@@ -10,9 +10,9 @@ import random
 
 class Robot:
     def __init__(self, bp, left_motor="A", right_motor="D", 
-        degree_to_distance=0.048435, wheel_separation=14.4486, 
+        degree_to_distance=0.059, wheel_separation=14.4486, 
         right_wheel_to_left_wheel_ratio=1.0035822,
-        power_limit=70, dps_limit=400, 
+        power_limit=70, dps_limit=600, 
         sonar=0):
         """
         The Robot class for brickpi3 robot.
@@ -155,11 +155,12 @@ class Robot:
         time.sleep(wait)
     
 
-    def loose(self):
+    def loose(self, time=0.02):
         """Set the motors to FLOAT.
         """
         self.bp.set_motor_power(self.left_motor, self.bp.MOTOR_FLOAT)
         self.bp.set_motor_power(self.right_motor, self.bp.MOTOR_FLOAT)
+        time.sleep(time)
 
 
     def move(self, distance, speed=8, start_delay=0, finish_delay=0):
@@ -167,17 +168,20 @@ class Robot:
             time.sleep(start_delay)
         left_target = distance / self.D
         right_target = left_target / self.r
+        slow_down_distance = speed * 0.25
         # Reset encoders
         self.clear_encoder()
         # Make the robot move forward
         if abs(speed) > self.speed_limit:
             speed = self.speed_limit if speed > 0 else -self.speed_limit
-        estimated_time = distance / speed - abs(3/speed) # move (distance - 3cm)
+        estimated_time = distance / speed - abs(slow_down_distance/speed) # move until slow down
         if estimated_time > 0:
             self.speed = speed
             time.sleep(estimated_time)
-        # slow down to 5cm/s
-        slow_speed = 5 if speed > 0 else -5
+            self.loose()
+
+        # slow down to 40%
+        slow_speed = speed * 0.4
         self.speed = slow_speed
         # Finish the rest distance
         left_encoder, right_encoder = self.encoder
