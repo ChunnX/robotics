@@ -211,12 +211,16 @@ def fast_localisation(robot):
         for step in range(36):
             deviation = 10*step
             error = 0
+            largest_error = 0
             for angle, reading in final_reading.items():
                 angle += deviation
                 angle -= math.floor(angle/360)*360
-                error += (reading - data[str(angle)])**2
-            if error < best_error:
-                best_error = error
+                new_error = (reading - data[str(angle)])**2
+                if new_error > largest_error:
+                    largest_error = new_error
+                error += new_error
+            if error - largest_error < best_error:
+                best_error = error - largest_error
                 best_angle = deviation + final_angle
         comparison_result.append((location, best_angle, best_error))
     
