@@ -1,14 +1,15 @@
 import brickpi3
 import numpy as np
-from numpy import random
+import random
 import time
 import math
 from RobotMotion import Robot
 from statistics import median
-from particleDataStructures import Map, Canvas
+# from datetime import datetime
+import json
 
 
-NUM_OF_PARTICLES = 100
+NUM_OF_PARTICLES = 400
 # collections of the walls
 walls = np.array([
     [[0, 0], [0, 168]],  # a
@@ -21,27 +22,13 @@ walls = np.array([
     [[210, 0], [0, 0]]  # h
     ], dtype=np.float32)
 
-canvas = Canvas()
-mymap = Map(canvas)
-mymap.add_wall((0, 0, 0, 168));  # a
-mymap.add_wall((0, 168, 84, 168));  # b
-mymap.add_wall((84, 126, 84, 210));  # c
-mymap.add_wall((84, 210, 168, 210));  # d
-mymap.add_wall((168, 210, 168, 84));  # e
-mymap.add_wall((168, 84, 210, 84));  # f
-mymap.add_wall((210, 84, 210, 0));  # g
-mymap.add_wall((210, 0, 0, 0));  # h
-mymap.draw()
+location_data = {}
+for i in range(5):
+    with open(f"location_{i+1}.json", "r") as file:
+        data = json.load(file)
+        location_data[i+1] = data
 
-
-
-def draw_particle(robot):
-    '''
-    draw particle set on canvas
-    '''
-    # convert particle into form that canvas can accept, i.e. (x, y, theta, weight)
-    data = [(robot.particle_set[i, 0], robot.particle_set[i, 1], -57.296*robot.particle_set[i, 2], robot.weight[i]) for i in range(NUM_OF_PARTICLES)]
-    canvas.drawParticles(data)
+location_dict = {1: (84, 30), 2: (180, 30), 3: (180, 54), 4: (138, 54), 5: (138, 168)}
 
 
 def update_straight(robot, D=20):
@@ -51,12 +38,12 @@ def update_straight(robot, D=20):
 
     # parameters for update
     k_e = 0.00625
-    k_f = 1.4437e-5
+    k_f = 0.000115
 
     # update particle set
-    e = random.normal(0, math.sqrt(abs(k_e*D)), NUM_OF_PARTICLES)
-    f = random.normal(0, math.sqrt(abs(D*k_f)), NUM_OF_PARTICLES)
-    s = random.normal(f/2, math.sqrt(abs(D**3 * k_f / 12)))
+    e = np.random.normal(0, math.sqrt(abs(k_e*D)), NUM_OF_PARTICLES)
+    f = np.random.normal(0, math.sqrt(abs(D*k_f)), NUM_OF_PARTICLES)
+    s = np.random.normal(f/2, math.sqrt(abs(D**3 * k_f / 12)))
     theta = robot.particle_set[:, 2]
     cosine_theta = np.cos(theta)
     sine_theta = np.sin(theta)
@@ -78,10 +65,10 @@ def update_rotation(robot, alpha=90):
     robot.direction += alpha
 
     # parameters for update
-    k_g = 1e-4
+    k_g = 3e-5
 
     # update particle set
-    g = random.normal(0, math.sqrt(abs(k_g * alpha)), NUM_OF_PARTICLES)
+    g = np.random.normal(0, math.sqrt(abs(k_g * alpha)), NUM_OF_PARTICLES)
     robot.particle_set[:, 2] += (g + alpha)
 
 
@@ -89,7 +76,7 @@ def update_rotation(robot, alpha=90):
 
 def calculate_likelihood(x, y, theta, z):
     # Define some constants
-    sonar_sigma = 2.5
+    sonar_sigma = 1.5
     K = 0.001
     distance = np.inf
 
@@ -120,9 +107,9 @@ def calculate_likelihood(x, y, theta, z):
 
 def update_weight(robot):
     sonar_readings = [robot.sonar, 0, 0]
-    time.sleep(0.01)
+    # time.sleep(0.01)
     sonar_readings[1] = robot.sonar
-    time.sleep(0.01)
+    # time.sleep(0.01)
     sonar_readings[2] = robot.sonar
     z = median(sonar_readings)
     if z < 25:
@@ -148,16 +135,8 @@ def update_weight(robot):
 
 
 def resampling(robot):
-    # generate random number between 0-1
-    new_particle_set = robot.particle_set.copy()
-    for idx in range(NUM_OF_PARTICLES):
-        random_num = random.random()
-        for p_index, w in enumerate(robot.weight):
-            if random_num < w:
-                new_particle_set[idx] = robot.particle_set[p_index]
-                break
-            else:
-                random_num -= w
+    resampled_indexes = np.random.choice(NUM_OF_PARTICLES, NUM_OF_PARTICLES, p=robot.weight)
+    new_particle_set = robot.particle_set[resampled_indexes].copy()
     robot.particle_set = new_particle_set
     robot.weight = np.ones(NUM_OF_PARTICLES, dtype=np.float32) / NUM_OF_PARTICLES
     
@@ -166,37 +145,98 @@ def resampling(robot):
 def navigateToWaypoint(robot, coordinates):
     position = robot.position
     angle = robot.direction * 57.296
+    angle -= math.floor(angle/360)*360
     x, y = coordinates
     dx = x - position[0]
     dy = y - position[1]
 
     angle_to_turn = math.atan2(dy, dx) * 57.296 - angle  # Calculate angle want to rotate
+
     if abs(angle_to_turn) > 180:
         angle_to_turn = angle_to_turn - 360 if angle_to_turn > 0 else 360 + angle_to_turn
     else:
         angle_to_turn = angle_to_turn
     distance_to_move = math.sqrt(dx**2 + dy**2)
 
-    turned_angle = robot.rotate(angle_to_turn, 30, finish_delay=0.5)
+    turned_angle = robot.rotate(angle_to_turn, 30, finish_delay=0)
     update_rotation(robot, turned_angle)
+    update_weight(robot)
+    resampling(robot)
 
-    while True:
-        if distance_to_move > 25:
-            step = 20
-            distance_to_move -= 20
-        else:
-            step = distance_to_move
-            distance_to_move = 0
 
-        moved_distance = robot.move(step, 10, finish_delay=0.1)
+    if distance_to_move > 25:
+        moved_distance = robot.move(20, 10, finish_delay=0)
         update_straight(robot, moved_distance)
         update_weight(robot)
-        draw_particle(robot)
         resampling(robot)
+        navigateToWaypoint(robot, coordinates)
+    else:
+        moved_distance = robot.move(distance_to_move, 10, finish_delay=0)
+        update_straight(robot, moved_distance)
+        update_weight(robot)
+        resampling(robot)
+        return
 
-        if not distance_to_move:
-            break
 
+
+def fast_localisation(robot):
+    # rotate at 60 degree per second
+    z = robot.sonar
+    reading_dict = {10*i:[] for i in range(36)}
+
+    robot.clear_encoder()
+    robot.speed = -0.2618 * robot.W, 0.2618 * robot.W
+    for time_step in range(190):
+        z = robot.sonar
+        left_encoder, right_encoder = robot.encoder
+        angle = robot.D * (right_encoder * robot.r - left_encoder) / robot.W * 57.29578
+        # angle = 60*time_step*0.04
+        angle = int(angle/10)*10
+        reading_dict[angle].append(z)
+        time.sleep(0.03)
+
+    robot.stop(0.05)
+    left_encoder, right_encoder = robot.encoder
+    final_angle = robot.D * (right_encoder * robot.r - left_encoder) / robot.W * 57.29578
+
+    final_reading = {}
+    for angle, readings in reading_dict.items():
+        if readings:
+            final_reading[angle] = median(readings)
+
+    comparison_result = []
+    for location, data in location_data.items():
+        best_error = np.inf
+        best_angle = 0
+        for step in range(36):
+            deviation = 10*step
+            error = 0
+            for angle, reading in final_reading.items():
+                angle += deviation
+                angle -= math.floor(angle/360)*360
+                error += (reading - data[str(angle)])**2
+            if error < best_error:
+                best_error = error
+                best_angle = deviation + final_angle
+        comparison_result.append((location, best_angle, best_error))
+    
+    location, final_angle, _ = min(comparison_result, key=lambda x: x[-1])
+    final_angle -= math.floor(final_angle/360)*360
+    theta = final_angle / 57.29578
+    x, y = location_dict[location]
+
+    # create particle set
+    robot.position = np.array([x, y])
+    robot.direction = theta
+    robot.weight = np.ones(NUM_OF_PARTICLES, dtype=np.float32) / NUM_OF_PARTICLES
+    robot.particle_set = np.zeros((NUM_OF_PARTICLES, 3))
+    robot.particle_set[:, 0] = x
+    robot.particle_set[:, 1] = y
+    robot.particle_set[:, 2] = np.random.uniform(theta - 0.0872665, theta + 0.0872665, NUM_OF_PARTICLES)
+    # print("location:", location)
+    # print("angle:", final_angle)
+    # print("error:", _)
+    return location
 
 
 
@@ -204,17 +244,8 @@ if __name__ == "__main__":
     BP = brickpi3.BrickPi3()
     robot = Robot(BP, sonar=2)
 
-    robot.position = np.array([84, 30]) # initial location
-    robot.direction = 0 # in rad
-    robot.weight = np.ones(NUM_OF_PARTICLES, dtype=np.float32) / NUM_OF_PARTICLES
-
-    robot.particle_set = np.zeros((NUM_OF_PARTICLES, 3))
-    robot.particle_set[:, 0] = 84
-    robot.particle_set[:, 1] = 30
-    robot.particle_set[:, 2] = random.normal(0, 0.02, NUM_OF_PARTICLES) # initial angle error of 1 degree
-
-    # Monte Carlo Localisation
-    draw_particle(robot)
+    location = fast_localisation(robot)
+    # starting_time = datetime.now()
 
     waypoints = [(180, 30), (180, 54), 
                 (138, 54), (138, 168), (114, 168), 
@@ -226,6 +257,10 @@ if __name__ == "__main__":
             robot.shutdown()
             raise
     robot.shutdown()
+
+    # end_time = datetime.now()
+    # time_cost = (end_time - starting_time).total_seconds()
+    # print("time cost:", round(time_cost, 6))
 
 
 

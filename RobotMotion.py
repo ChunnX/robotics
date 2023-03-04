@@ -54,16 +54,6 @@ class Robot:
             print(e)
             raise
         
-        # Drawing part
-        # self.NUM_OF_PARTICLES = 100
-        # self.weight = 1 / self.NUM_OF_PARTICLES
-        # self.particle_set = [(100, 500, 0)] * self.NUM_OF_PARTICLES    # location in screen coordinate, corresponding to (0, 0, 0) in real coordinate
-        # self.sigma_e = 0.01501531
-        # self.sigma_f = 0.00179343
-        # self.sigma_g = 0.00375954
-        # self.position = [0, 0]
-        # self.direction = 0    # angle between robot facing direction and x-axis, 0 means facing east
-    
 
     @property
     def wheel_speed(self):
@@ -218,17 +208,21 @@ class Robot:
         speed = angular_speed * self.W / 114.59
         if abs(speed) > self.speed_limit:
             speed = self.speed_limit if speed > 0 else -self.speed_limit
-        estimated_time = arc_length / speed - abs(1/speed)
+        slow_down_distance = angular_speed / 45 if abs(angular_speed) > 45 else 1
+        estimated_time = arc_length / speed - abs(slow_down_distance/speed)
         if estimated_time > 0:
             self.speed = -speed, speed
             time.sleep(estimated_time)
-        # slow robot down
-        speed = 3 if speed > 0 else -3
+            # slow robot down
+            speed = speed * 0.4
+        else:
+            # slow robot down
+            speed = 3 if speed > 0 else -3
         self.speed = -speed, speed
-        for i in range(40):
+        while True:
             time.sleep(0.02)
             left_encoder, right_encoder = self.encoder
-            if abs(angular_target - right_encoder * self.r + left_encoder) < 5:
+            if angular_target - right_encoder * self.r + left_encoder < 5:
                 break
         self.stop()
         # Wait if required
