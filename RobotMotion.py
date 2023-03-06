@@ -158,14 +158,16 @@ class Robot:
             time.sleep(start_delay)
         left_target = distance / self.D
         right_target = left_target / self.r
-        slow_down_distance = speed * 0.25
+        acceleration_distance = speed * 0.25
         # Reset encoders
         self.clear_encoder()
         # Make the robot move forward
         if abs(speed) > self.speed_limit:
             speed = self.speed_limit if speed > 0 else -self.speed_limit
-        estimated_time = distance / speed - abs(slow_down_distance/speed) # move until slow down
+        estimated_time = distance / speed - abs(acceleration_distance/speed) - 0.2 # move until slow down
         if estimated_time > 0:
+            self.speed = speed * 0.4
+            time.sleep(0.5)
             self.speed = speed
             time.sleep(estimated_time)
             self.loose(0.05)
