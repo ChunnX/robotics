@@ -172,8 +172,8 @@ class Robot:
             time.sleep(estimated_time)
             self.loose(0.05)
 
-        # slow down to 40%
-        slow_speed = speed * 0.4
+        # slow down to 50%
+        slow_speed = speed * 0.5
         self.speed = slow_speed
         # Finish the rest distance
         left_encoder, right_encoder = self.encoder
@@ -197,7 +197,7 @@ class Robot:
         return (left_encoder + right_encoder*self.r) * self.D / 2
 
 
-    def rotate(self, angle, angular_speed=60, start_delay=0, finish_delay=0):
+    def rotate(self, angle, angular_speed=90, start_delay=0, finish_delay=0):
         if start_delay > 0:
             time.sleep(start_delay)
         # Calculate the angular target (could be negative)
