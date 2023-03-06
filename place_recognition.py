@@ -16,12 +16,52 @@ if __name__ == "__main__":
         current_angle = 0
 
         # 0 to 330 degree, 30 degree as interval
-        for i in range(36):
-            target_angle = i*10
+        for i in range(12):
+            target_angle = i*30
             angle_to_turn = target_angle - current_angle
             if angle_to_turn:
-                rotated_angle = robot.rotate(angle_to_turn, 45, finish_delay=0.1)
-            current_angle += rotated_angle
+                rotated_angle = robot.rotate(angle_to_turn, 45, finish_delay=1)
+                current_angle += rotated_angle
+
+            sonar_readings = [0, 0, 0, 0, 0]
+            for j in range(5):
+                sonar_readings[j] = robot.sonar 
+                time.sleep(0.01)
+            
+            sonar_reading = median(sonar_readings)
+            detection_dictionary[target_angle] = sonar_reading
+        
+        rotated_angle = robot.rotate(370 - current_angle, 45, finish_delay=1)
+        current_angle += rotated_angle
+        current_angle -= 360
+
+        for i in range(12):
+            target_angle = i*30
+            angle_to_turn = target_angle - current_angle
+            if angle_to_turn:
+                rotated_angle = robot.rotate(angle_to_turn, 45, finish_delay=1)
+                current_angle += rotated_angle
+
+
+            sonar_readings = [0, 0, 0, 0, 0]
+            for j in range(5):
+                sonar_readings[j] = robot.sonar 
+                time.sleep(0.01)
+            
+            sonar_reading = median(sonar_readings)
+            detection_dictionary[target_angle] = sonar_reading
+        
+        rotated_angle = robot.rotate(380 - current_angle, 45, finish_delay=1)
+        current_angle += rotated_angle
+        current_angle -= 360
+        
+        for i in range(12):
+            target_angle = i*30
+            angle_to_turn = target_angle - current_angle
+            if angle_to_turn:
+                rotated_angle = robot.rotate(angle_to_turn, 45, finish_delay=1)
+                current_angle += rotated_angle
+
 
             sonar_readings = [0, 0, 0, 0, 0]
             for j in range(5):
