@@ -36,7 +36,7 @@ if __name__ == "__main__":
         current_angle -= 360
 
         for i in range(12):
-            target_angle = i*30
+            target_angle = i*30+10
             angle_to_turn = target_angle - current_angle
             if angle_to_turn:
                 rotated_angle = robot.rotate(angle_to_turn, 45, finish_delay=1)
@@ -56,7 +56,7 @@ if __name__ == "__main__":
         current_angle -= 360
         
         for i in range(12):
-            target_angle = i*30
+            target_angle = i*30+20
             angle_to_turn = target_angle - current_angle
             if angle_to_turn:
                 rotated_angle = robot.rotate(angle_to_turn, 45, finish_delay=1)

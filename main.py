@@ -71,7 +71,7 @@ def update_rotation(robot, alpha=90):
     k_g = 3e-5
 
     # update particle set
-    g = np.random.normal(0, math.sqrt(abs(k_g * alpha)), NUM_OF_PARTICLES)
+    g = np.random.normal(0, math.sqrt(abs(k_g * alpha)+0.00122), NUM_OF_PARTICLES)
     robot.particle_set[:, 2] += (g + alpha)
 
 
@@ -281,7 +281,7 @@ def fast_localisation(robot):
     robot.particle_set = np.zeros((NUM_OF_PARTICLES, 3))
     robot.particle_set[:, 0] = x
     robot.particle_set[:, 1] = y
-    robot.particle_set[:, 2] = np.random.uniform(theta - 0.0872665, theta + 0.0872665, NUM_OF_PARTICLES)
+    robot.particle_set[:, 2] = np.random.uniform(theta - 0.1, theta + 0.1, NUM_OF_PARTICLES)
 
     print("location:", location)
     print("final angle:", final_angle)

@@ -10,7 +10,7 @@ import random
 
 class Robot:
     def __init__(self, bp, left_motor="A", right_motor="D", 
-        degree_to_distance=0.06094, wheel_separation=13.2455, 
+        degree_to_distance=0.06094, wheel_separation=14.06, 
         right_wheel_to_left_wheel_ratio=0.984,
         power_limit=70, dps_limit=600, 
         sonar=0):
@@ -164,10 +164,10 @@ class Robot:
         # Make the robot move forward
         if abs(speed) > self.speed_limit:
             speed = self.speed_limit if speed > 0 else -self.speed_limit
-        estimated_time = distance / speed - abs(acceleration_distance/speed) - 0.2 # move until slow down
+        estimated_time = distance / speed - abs(acceleration_distance/speed) - 0.16 # move until slow down
         if estimated_time > 0:
-            self.speed = speed * 0.4
-            time.sleep(0.5)
+            self.speed = speed * 0.8
+            time.sleep(0.2)
             self.speed = speed
             time.sleep(estimated_time)
             self.loose(0.05)
