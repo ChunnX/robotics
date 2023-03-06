@@ -164,10 +164,10 @@ class Robot:
         # Make the robot move forward
         if abs(speed) > self.speed_limit:
             speed = self.speed_limit if speed > 0 else -self.speed_limit
-        estimated_time = distance / speed - abs(acceleration_distance/speed) - 0.16 # move until slow down
+        estimated_time = distance / speed - abs(acceleration_distance/speed) - 0.072 # move until slow down
         if estimated_time > 0:
-            self.speed = speed * 0.8
-            time.sleep(0.2)
+            self.speed = speed * 0.6
+            time.sleep(0.12)
             self.speed = speed
             time.sleep(estimated_time)
             self.loose(0.05)
