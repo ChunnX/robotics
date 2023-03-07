@@ -10,8 +10,8 @@ import random
 
 class Robot:
     def __init__(self, bp, left_motor="A", right_motor="D", 
-        degree_to_distance=0.06094, wheel_separation=14.06, 
-        right_wheel_to_left_wheel_ratio=0.984,
+        degree_to_distance=0.06094, wheel_separation=14.19, 
+        right_wheel_to_left_wheel_ratio=1,
         power_limit=70, dps_limit=600, 
         sonar=0):
         """
@@ -177,8 +177,7 @@ class Robot:
         self.speed = slow_speed
         # Finish the rest distance
         left_encoder, right_encoder = self.encoder
-        remaining_time = (left_target - left_encoder + 
-            (right_target - right_encoder)*self.r) * self.D / (slow_speed*2)
+        remaining_time = (left_target - left_encoder + (right_target - right_encoder)*self.r) * self.D / (slow_speed*2)
         if remaining_time > 0:
             time.sleep(remaining_time)
         # Use positional control for final correction
@@ -224,7 +223,9 @@ class Robot:
         while True:
             time.sleep(0.02)
             left_encoder, right_encoder = self.encoder
-            if angular_target - right_encoder * self.r + left_encoder < 5:
+            diff = angular_target - right_encoder * self.r + left_encoder if angle > 0 else \
+                right_encoder * self.r - left_encoder - angular_target
+            if diff < 5:
                 break
         self.stop()
         # Wait if required
