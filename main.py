@@ -39,7 +39,7 @@ def update_straight(robot, D=20):
     robot.position[1] += D * math.sin(robot.direction)
 
     # parameters for update
-    k_e = 0.00625
+    k_e = 0.1
     k_f = 0.000115
 
     # update particle set
@@ -174,8 +174,10 @@ def navigateToWaypoint(robot, start_location, target_location):
         dx = target_x - x
         dy = target_y - y
         
+        ############################################################
         distance_to_move = math.sqrt(dx**2 + dy**2)
         angle_to_turn = math.atan2(dy, dx) * 57.29578 - angle
+        ############################################################
 
         if abs(angle_to_turn) > 180:
             angle_to_turn = angle_to_turn - 360 if angle_to_turn > 0 else 360 + angle_to_turn
@@ -185,6 +187,10 @@ def navigateToWaypoint(robot, start_location, target_location):
         update_weight(robot)
         resampling(robot)
 
+        #################################
+            #  4.6 degree  #
+        # update_rotation(robot, 4.6)
+        #################################
 
         if need_checking:
             remaining_distance = check_distance - distance_traveled
@@ -208,12 +214,12 @@ def navigateToWaypoint(robot, start_location, target_location):
             update_weight(robot)
             resampling(robot)
             distance_traveled += moved_distance
-        elif distance_to_move > 20:
-            moved_distance = robot.move(15, 24)
-            update_straight(robot, moved_distance)
-            update_weight(robot)
-            resampling(robot)
-            distance_traveled += moved_distance
+        # elif distance_to_move > 20:
+        #     moved_distance = robot.move(15, 24)
+        #     update_straight(robot, moved_distance)
+        #     update_weight(robot)
+        #     resampling(robot)
+        #     distance_traveled += moved_distance
         else:
             moved_distance = robot.move(distance_to_move, 24, finish_delay=1)
             update_straight(robot, moved_distance)
@@ -230,13 +236,14 @@ def fast_localisation(robot):
     reading_dict = {10*i:[] for i in range(36)}
 
     robot.clear_encoder()
-    robot.speed = -0.2618 * robot.W, 0.2618 * robot.W
-    for time_step in range(190):
+    robot.speed = -0.5236 * robot.W, 0.5236 * robot.W
+    for time_step in range(210):
         z = robot.sonar
         left_encoder, right_encoder = robot.encoder
         angle = robot.D * (right_encoder * robot.r - left_encoder) / robot.W * 57.29578
         # angle = 60*time_step*0.03
-        angle = int(angle/10)*10
+        angle = round(angle/10)*10
+        angle %= 360
         reading_dict[angle].append(z)
         time.sleep(0.03)
 
@@ -259,7 +266,7 @@ def fast_localisation(robot):
             largest_error = 0
             for angle, reading in final_reading.items():
                 angle += deviation
-                angle -= math.floor(angle/360)*360
+                angle %= 360
                 new_error = (reading - data[str(angle)])**2
                 if new_error > largest_error:
                     largest_error = new_error
@@ -283,9 +290,12 @@ def fast_localisation(robot):
     robot.particle_set[:, 1] = y
     robot.particle_set[:, 2] = np.random.uniform(theta - 0.1, theta + 0.1, NUM_OF_PARTICLES)
 
+    for loc, _, error in comparison_result:
+        print(f"location {loc}", f"error {error}")
+    print()
+
     print("location:", location)
     print("final angle:", final_angle)
-    print("error:", _)
     
     return location
 
@@ -293,12 +303,14 @@ def fast_localisation(robot):
 
 if __name__ == "__main__":
     BP = brickpi3.BrickPi3()
-    robot = Robot(BP, sonar=2)
+    robot = Robot(BP, sonar=1)
 
     location = fast_localisation(robot)
 
     current_location = location
     path = path_dict[location]
+    
+    robot.shutdown()
 
     # for next_location in path:
     #     try:
