@@ -271,8 +271,8 @@ def fast_localisation(robot):
                 if new_error > largest_error:
                     largest_error = new_error
                 error += new_error
-            if error - largest_error < best_error:
-                best_error = error - largest_error
+            if (error - largest_error) / (len(final_reading) - 1) < best_error:
+                best_error = (error - largest_error) / (len(final_reading) - 1)
                 best_angle = deviation + final_angle
         comparison_result.append((location, best_angle, best_error))
     
