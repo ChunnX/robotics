@@ -71,7 +71,7 @@ def update_rotation(robot, alpha=90):
     k_g = 3e-5
 
     # update particle set
-    g = np.random.normal(0, math.sqrt(abs(k_g * alpha)+6.854e-4), NUM_OF_PARTICLES)
+    g = np.random.normal(0, math.sqrt(abs(k_g * alpha)+0.00274), NUM_OF_PARTICLES)
     robot.particle_set[:, 2] += (g + alpha)
 
 
