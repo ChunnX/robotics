@@ -161,7 +161,6 @@ def navigateToWaypoint(robot, start_location, target_location):
             angle_to_turn = check_angle - angle
             if abs(angle_to_turn) > 180:
                 angle_to_turn = angle_to_turn - 360 if angle_to_turn > 0 else 360 + angle_to_turn
-            turned_angle = robot.rotate(angle_to_turn, 90)
             update_rotation(robot, turned_angle)
             update_weight(robot)
             resampling(robot)
@@ -191,12 +190,8 @@ def navigateToWaypoint(robot, start_location, target_location):
             correction = 0
 
         #################################
-        if abs(angle_to_turn) < 20:
-            angular_speed = 45
-        elif abs(angle_to_turn) < 90:
-            angular_speed = 90
-        elif abs(angle_to_turn) < 120:
-            angular_speed = angle_to_turn
+        if abs(angle_to_turn) < 30:
+            angular_speed = 60
         else:
             angular_speed = 120
         #################################
@@ -231,7 +226,7 @@ def navigateToWaypoint(robot, start_location, target_location):
             resampling(robot)
             distance_traveled += moved_distance
         elif distance_to_move > 30:
-            moved_distance = robot.move(27, 24)
+            moved_distance = robot.move(27, 30)
             if correction:
                 update_rotation(robot, correction)
             update_straight(robot, moved_distance)
