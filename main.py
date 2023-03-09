@@ -71,7 +71,7 @@ def update_rotation(robot, alpha=90):
     k_g = 3e-5
 
     # update particle set
-    g = np.random.normal(0, math.sqrt(abs(k_g * alpha)+0.00274), NUM_OF_PARTICLES)
+    g = np.random.normal(0, math.sqrt(abs(k_g * alpha)+0.003), NUM_OF_PARTICLES)
     robot.particle_set[:, 2] += (g + alpha)
 
 
@@ -176,7 +176,7 @@ def navigateToWaypoint(robot, start_location, target_location):
             angle_to_turn = check_angle - angle
             if abs(angle_to_turn) > 180:
                 angle_to_turn = angle_to_turn - 360 if angle_to_turn > 0 else 360 + angle_to_turn
-            turned_angle = robot.rotate(angle_to_turn, 120)
+            turned_angle = robot.rotate(angle_to_turn, 90)
             update_rotation(robot, turned_angle)
             update_weight(robot)
             resampling(robot)
@@ -209,7 +209,7 @@ def navigateToWaypoint(robot, start_location, target_location):
         if abs(angle_to_turn) < 30:
             angular_speed = 60
         else:
-            angular_speed = 120
+            angular_speed = 90
         #################################
         turned_angle = robot.rotate(angle_to_turn, angular_speed)
         update_rotation(robot, turned_angle)
