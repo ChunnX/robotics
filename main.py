@@ -161,6 +161,7 @@ def navigateToWaypoint(robot, start_location, target_location):
             angle_to_turn = check_angle - angle
             if abs(angle_to_turn) > 180:
                 angle_to_turn = angle_to_turn - 360 if angle_to_turn > 0 else 360 + angle_to_turn
+            turned_angle = robot.rotate(angle_to_turn, 120)
             update_rotation(robot, turned_angle)
             update_weight(robot)
             resampling(robot)
@@ -332,17 +333,17 @@ if __name__ == "__main__":
     current_location = location
     path = path_dict[location]
     
-    robot.shutdown()
-
-    # for next_location in path:
-    #     try:
-    #         navigateToWaypoint(robot, current_location, next_location)
-    #     except:
-    #         robot.shutdown()
-    #         raise
-    #     else:
-    #         current_location = next_location
     # robot.shutdown()
+
+    for next_location in path:
+        try:
+            navigateToWaypoint(robot, current_location, next_location)
+        except:
+            robot.shutdown()
+            raise
+        else:
+            current_location = next_location
+    robot.shutdown()
 
 
 
