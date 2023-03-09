@@ -161,6 +161,11 @@ def navigateToWaypoint(robot, start_location, target_location):
     else:
         need_checking = False
     
+    if start_location == 1 and target_location == 5 or start_location == 5 and target_location == 1:
+        extra_noise = True
+    else:
+        extra_noise = False
+
     target_x, target_y = location_dict[target_location]
     distance_traveled = 0
 
@@ -208,8 +213,12 @@ def navigateToWaypoint(robot, start_location, target_location):
         #################################
         turned_angle = robot.rotate(angle_to_turn, angular_speed)
         update_rotation(robot, turned_angle)
+        if extra_noise:
+            add_noise(robot)
+            extra_noise = False
         update_weight(robot)
         resampling(robot)
+
 
         #################################
             #  4.6 degree  #
