@@ -327,9 +327,11 @@ def fast_localisation(robot):
 if __name__ == "__main__":
     BP = brickpi3.BrickPi3()
     robot = Robot(BP, sonar=1)
-
-    location = fast_localisation(robot)
-
+    try:
+        location = fast_localisation(robot)
+    except:
+        robot.shutdown()
+        raise
     current_location = location
     path = path_dict[location]
     
