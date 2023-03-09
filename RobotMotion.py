@@ -215,10 +215,10 @@ class Robot:
             self.speed = -speed, speed
             time.sleep(estimated_time)
             # slow robot down
-            speed = speed * 0.4
+            speed = speed * 0.5
         else:
             # slow robot down
-            speed = 3 if speed > 0 else -3
+            speed = 4 if speed > 0 else -4
         self.speed = -speed, speed
         while True:
             time.sleep(0.02)
